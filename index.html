@@ -420,33 +420,33 @@
 </div>
 
 <div class="filters" id="filters">
-  <div class="filter-group">
-    <label>Year</label>
-    <select id="yearSelect">
-      <option value="all">All Years</option>
-    </select>
-  </div>
+  <div class="filter-row" style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+    <div class="filter-group">
+      <label>Year</label>
+      <select id="yearSelect">
+        <option value="all">All Years</option>
+      </select>
+    </div>
 
-  <div class="filter-group">
-    <label>Streaming</label>
-    <select id="streamingFilter">
-      <option value="All">All</option>
-      <option value="Netflix">Netflix</option>
-      <option value="Prime Video">Prime Video</option>
-      <option value="Hulu">Hulu</option>
-      <option value="Max">Max</option>
-      <option value="Disney+">Disney+</option>
-      <option value="Paramount+">Paramount+</option>
-      <option value="Peacock">Peacock</option>
-      <option value="Apple TV+">Apple TV+</option>
-      <option value="Rent/Buy">Rent/Buy Only</option>
-    </select>
-  </div>
+    <div class="filter-group">
+      <label>Streaming</label>
+      <select id="streamingFilter">
+        <option value="All">All</option>
+        <option value="Netflix">Netflix</option>
+        <option value="Prime Video">Prime Video</option>
+        <option value="Hulu">Hulu</option>
+        <option value="Max">Max</option>
+        <option value="Disney+">Disney+</option>
+        <option value="Paramount+">Paramount+</option>
+        <option value="Peacock">Peacock</option>
+        <option value="Apple TV+">Apple TV+</option>
+        <option value="Rent/Buy">Rent/Buy Only</option>
+      </select>
+    </div>
 
-  <div class="filter-group" style="display:flex;gap:1.5rem;align-items:flex-start;">
-    <div>
+    <div class="filter-group">
       <label>Category Nominees</label>
-      <div class="checkboxes">
+      <div class="checkboxes" style="display:grid;grid-template-columns:auto auto auto;gap:0.1rem 1rem;">
         <label><input type="checkbox" value="Best Picture" checked> Picture</label>
         <label><input type="checkbox" value="Best Director" checked> Director</label>
         <label><input type="checkbox" value="Best Actor" checked> Actor</label>
@@ -459,17 +459,18 @@
         <label class="toggle-label" for="winnersOnly">Winners only</label>
       </div>
     </div>
-    <div>
+
+    <div class="filter-group" style="align-self:flex-start;padding-top:1.55rem;">
       <label>Box Office</label>
       <div class="checkboxes">
         <label><input type="checkbox" id="boxOfficeToggle" value="boxoffice"> Top 10</label>
       </div>
     </div>
-  </div>
 
-  <div class="filter-group">
-    <label>Search</label>
-    <input type="text" id="searchBox" placeholder="Film or person...">
+    <div class="filter-group" style="margin-left:auto;">
+      <label>Search</label>
+      <input type="text" id="searchBox" placeholder="Film or person...">
+    </div>
   </div>
 </div>
 
