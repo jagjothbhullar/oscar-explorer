@@ -1,0 +1,3068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academy Awards Explorer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #222240;
+    --gold: #d4af37;
+    --gold-dim: #b8962e;
+    --text: #e8e8f0;
+    --text-dim: #9090a8;
+    --blue: #4a90d9;
+    --green: #3ddc84;
+    --pink: #e91e8c;
+    --red: #ff4757;
+    --radius: 10px;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  a { color: var(--gold); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    background: linear-gradient(180deg, #1a1a2e 0%, var(--bg) 100%);
+    border-bottom: 1px solid rgba(212,175,55,0.15);
+  }
+  .header h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: linear-gradient(135deg, var(--gold) 0%, #f5e6a3 50%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p { color: var(--text-dim); font-size: 1rem; margin-top: 0.25rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 300; }
+
+  /* Filters */
+  .filters {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+    background: var(--surface);
+    border-radius: var(--radius);
+    margin-top: 1rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    border: 1px solid rgba(212,175,55,0.1);
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 0.3rem; }
+  .filter-group label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); font-weight: 600; }
+  .filter-group input[type="text"],
+  .filter-group select {
+    background: var(--surface2);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .filter-group input[type="text"]:focus,
+  .filter-group select:focus { border-color: var(--gold); }
+  .filter-group input[type="text"] { width: 200px; }
+  .filter-group select { min-width: 140px; }
+  .checkboxes { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+  .checkboxes label {
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: pointer;
+    color: var(--text);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  .checkboxes input[type="checkbox"] { accent-color: var(--gold); width: 15px; height: 15px; }
+  .toggle-group { display: flex; align-items: center; gap: 0.5rem; }
+  .toggle-group label.toggle-label { font-size: 0.8rem; color: var(--text); text-transform: none; letter-spacing: 0; font-weight: 400; cursor: pointer; }
+  .switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--surface2);
+    border-radius: 22px;
+    transition: 0.3s;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .slider::before {
+    content: '';
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: 0.3s;
+  }
+  .switch input:checked + .slider { background: var(--gold-dim); }
+  .switch input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+
+  /* Year range */
+  .year-range-container { display: flex; flex-direction: column; gap: 0.3rem; min-width: 240px; }
+  .year-range-container label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); font-weight: 600; }
+  .year-range-inputs { display: flex; align-items: center; gap: 0.5rem; }
+  .year-range-inputs input[type="number"] {
+    width: 70px;
+    background: var(--surface2);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text);
+    padding: 0.5rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    text-align: center;
+    outline: none;
+  }
+  .year-range-inputs input[type="number"]:focus { border-color: var(--gold); }
+  .year-range-inputs span { color: var(--text-dim); font-size: 0.85rem; }
+
+  /* Stats bar */
+  .stats-bar {
+    max-width: 1400px;
+    margin: 0.75rem auto 0;
+    padding: 0.6rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .stats { display: flex; gap: 1.5rem; }
+  .stat { font-size: 0.85rem; color: var(--text-dim); }
+  .stat strong { color: var(--gold); font-weight: 700; }
+  .view-toggle { display: flex; gap: 0.5rem; }
+  .view-btn {
+    background: var(--surface2);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-dim);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  .view-btn.active, .view-btn:hover { background: var(--gold-dim); color: #000; border-color: var(--gold); }
+
+  /* Cards grid */
+  .card-grid {
+    max-width: 1400px;
+    margin: 1rem auto 2rem;
+    padding: 0 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 1.2rem;
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    border-color: rgba(212,175,55,0.25);
+  }
+  .card.winner::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), #f5e6a3, var(--gold));
+  }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+  .card-year { font-size: 0.8rem; color: var(--text-dim); font-weight: 600; }
+  .card-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .badge-picture { background: rgba(212,175,55,0.2); color: var(--gold); }
+  .badge-director { background: rgba(74,144,217,0.2); color: var(--blue); }
+  .badge-actor { background: rgba(61,220,132,0.2); color: var(--green); }
+  .badge-actress { background: rgba(233,30,140,0.2); color: var(--pink); }
+  .badge-boxoffice { background: rgba(0,200,83,0.2); color: #00c853; }
+  .badge-adapted { background: rgba(255,152,0,0.2); color: #ff9800; }
+  .badge-original { background: rgba(156,39,176,0.2); color: #ce93d8; }
+  .badge-winner { background: var(--gold); color: #000; }
+  .badge-streaming {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-dim);
+    font-size: 0.6rem;
+  }
+  .badge-streaming.netflix { background: rgba(229,9,20,0.2); color: #e50914; }
+  .badge-streaming.prime { background: rgba(0,168,225,0.2); color: #00a8e1; }
+  .badge-streaming.hulu { background: rgba(28,231,131,0.2); color: #1ce783; }
+  .badge-streaming.max { background: rgba(0,36,255,0.2); color: #6e7fff; }
+  .badge-streaming.disney { background: rgba(17,60,207,0.2); color: #4a9cf5; }
+  .badge-streaming.paramount { background: rgba(0,100,210,0.2); color: #0064d2; }
+  .badge-streaming.peacock { background: rgba(0,0,0,0.2); color: #f6c244; }
+  .badge-streaming.apple { background: rgba(160,160,160,0.2); color: #a0a0a0; }
+  .badge-streaming.rentbuy { background: rgba(255,165,0,0.15); color: #ffa500; }
+  .card-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.25rem; color: #fff; }
+  .card-person { font-size: 0.9rem; color: var(--text-dim); margin-bottom: 0.6rem; }
+  .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
+  .watch-link {
+    font-size: 0.75rem;
+    color: var(--gold);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: color 0.2s;
+  }
+  .watch-link:hover { color: #f5e6a3; }
+
+  /* Table / Spreadsheet view */
+  .table-container {
+    max-width: 1400px;
+    margin: 1rem auto 2rem;
+    padding: 0 1.5rem;
+    overflow-x: auto;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.88rem;
+    border: 1px solid rgba(212,175,55,0.15);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .data-table th {
+    background: linear-gradient(180deg, #2a2a4a 0%, #222240 100%);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 2px solid var(--gold-dim);
+    border-right: 1px solid rgba(255,255,255,0.05);
+    white-space: nowrap;
+    transition: color 0.2s, background 0.2s;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .data-table th:last-child { border-right: none; }
+  .data-table th:hover { color: var(--gold); background: #2e2e52; }
+  .data-table th.sorted { color: var(--gold); background: #2e2e52; }
+  .data-table th .sort-arrow { margin-left: 0.4rem; font-size: 0.7rem; opacity: 0.8; }
+  .data-table td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-right: 1px solid rgba(255,255,255,0.03);
+    vertical-align: middle;
+  }
+  .data-table td:last-child { border-right: none; }
+  .data-table tbody tr { transition: background 0.15s; }
+  .data-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
+  .data-table tbody tr:nth-child(odd) { background: transparent; }
+  .data-table tbody tr:hover { background: rgba(212,175,55,0.07) !important; }
+  .data-table tr.winner-row { background: rgba(212,175,55,0.08) !important; }
+  .data-table tr.winner-row:hover { background: rgba(212,175,55,0.13) !important; }
+  .data-table .cell-film { font-weight: 600; color: #fff; max-width: 320px; }
+  .data-table .cell-winner { color: var(--gold); font-weight: 700; }
+  .data-table .cell-year { font-weight: 700; color: var(--gold-dim); font-variant-numeric: tabular-nums; }
+  .data-table .cell-person { max-width: 220px; }
+  .table-row-count {
+    text-align: right;
+    padding: 0.5rem 1rem 0;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .header h1 { font-size: 1.4rem; }
+    .header p { font-size: 0.8rem; }
+    .filters { flex-direction: column; align-items: stretch; padding: 1rem; gap: 0.75rem; margin: 0 0.5rem; }
+    .filter-group { width: 100%; }
+    .filter-group select { width: 100%; }
+    .filter-group input[type="text"] { width: 100%; }
+    .checkboxes { flex-wrap: wrap; }
+    .checkboxes label { font-size: 0.8rem; }
+    .stats-bar { flex-direction: column; gap: 0.5rem; padding: 0.5rem 1rem; }
+    .stats { flex-direction: column; gap: 0.3rem; }
+    .table-container { padding: 0 0.5rem; margin: 0.5rem 0.5rem 2rem; }
+    .data-table { font-size: 0.75rem; }
+    .data-table th { padding: 0.5rem 0.4rem; font-size: 0.65rem; }
+    .data-table td { padding: 0.4rem 0.4rem; }
+    .badge { font-size: 0.6rem; padding: 0.15rem 0.4rem; }
+    .random-pick { margin: 1rem 0.5rem; padding: 1.5rem 1rem; }
+    .random-title { font-size: 1.3rem; }
+    .random-btn { font-size: 0.8rem; padding: 0.5rem 1rem; }
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--text-dim);
+  }
+  .empty-state h3 { font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text); }
+
+  /* Scroll to top */
+  /* Random pick */
+  .random-btn {
+    background: linear-gradient(135deg, var(--gold-dim), #e8c84a);
+    color: #000;
+    border: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+  }
+  .random-btn:hover { transform: scale(1.03); box-shadow: 0 4px 15px rgba(212,175,55,0.3); }
+  .random-pick {
+    max-width: 500px;
+    margin: 1.5rem auto;
+    padding: 2rem 2.5rem;
+    background: linear-gradient(135deg, #1e1e3a, #2a2a4a);
+    border: 2px solid var(--gold);
+    border-radius: 16px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 8px 40px rgba(212,175,55,0.15);
+    animation: popIn 0.3s ease-out;
+  }
+  @keyframes popIn { from { opacity:0; transform: scale(0.9); } to { opacity:1; transform: scale(1); } }
+  .random-close {
+    position: absolute; top: 0.8rem; right: 1rem;
+    background: none; border: none; color: var(--text-dim);
+    font-size: 1.5rem; cursor: pointer; line-height: 1;
+  }
+  .random-close:hover { color: var(--text); }
+  .random-label { color: var(--text-dim); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+  .random-title {
+    font-size: 1.8rem; font-weight: 700; color: #fff;
+    margin-bottom: 0.3rem;
+    background: linear-gradient(135deg, #fff, var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .random-meta { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 0.8rem; }
+  .random-stream { margin-bottom: 1rem; }
+  .random-link {
+    display: inline-block; color: var(--gold); font-size: 0.9rem;
+    margin-bottom: 1rem; text-decoration: none;
+  }
+  .random-link:hover { text-decoration: underline; }
+  .random-again { display: inline-block; font-size: 0.8rem; padding: 0.4rem 1rem; }
+
+  .scroll-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    color: #000;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
+    z-index: 100;
+  }
+  .scroll-top:hover { transform: scale(1.1); }
+  .scroll-top.visible { display: flex; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Academy Awards Explorer</h1>
+  <p>Nominations 1970 &ndash; 2024</p>
+  <button class="random-btn" id="randomBtn" style="margin-top:1rem;">What should I watch tonight?</button>
+</div>
+
+<div class="filters" id="filters">
+  <div class="filter-group">
+    <label>Year</label>
+    <select id="yearSelect">
+      <option value="all">All Years</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label>Streaming</label>
+    <select id="streamingFilter">
+      <option value="All">All</option>
+      <option value="Netflix">Netflix</option>
+      <option value="Prime Video">Prime Video</option>
+      <option value="Hulu">Hulu</option>
+      <option value="Max">Max</option>
+      <option value="Disney+">Disney+</option>
+      <option value="Paramount+">Paramount+</option>
+      <option value="Peacock">Peacock</option>
+      <option value="Apple TV+">Apple TV+</option>
+      <option value="Rent/Buy">Rent/Buy Only</option>
+    </select>
+  </div>
+
+  <div class="filter-group" style="display:flex;gap:1.5rem;align-items:flex-start;">
+    <div>
+      <label>Category Nominees</label>
+      <div class="checkboxes">
+        <label><input type="checkbox" value="Best Picture" checked> Picture</label>
+        <label><input type="checkbox" value="Best Director" checked> Director</label>
+        <label><input type="checkbox" value="Best Actor" checked> Actor</label>
+        <label><input type="checkbox" value="Best Actress" checked> Actress</label>
+        <label><input type="checkbox" value="Best Adapted Screenplay" checked> Adapted Screenplay</label>
+        <label><input type="checkbox" value="Best Original Screenplay" checked> Original Screenplay</label>
+      </div>
+      <div class="toggle-group" style="margin-top:0.4rem;">
+        <label class="switch"><input type="checkbox" id="winnersOnly"><span class="slider"></span></label>
+        <label class="toggle-label" for="winnersOnly">Winners only</label>
+      </div>
+    </div>
+    <div>
+      <label>Box Office</label>
+      <div class="checkboxes">
+        <label><input type="checkbox" id="boxOfficeToggle" value="boxoffice"> Top 10</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <label>Search</label>
+    <input type="text" id="searchBox" placeholder="Film or person...">
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stats">
+    <span class="stat">Showing <strong id="filmCount">0</strong> films</span>
+    <span class="stat">Across <strong id="totalCount">0</strong> nominations</span>
+  </div>
+
+</div>
+
+<div class="random-pick" id="randomPick" style="display:none;">
+  <button class="random-close" id="randomClose">&times;</button>
+  <div class="random-label">Tonight you should watch...</div>
+  <div class="random-title" id="randomTitle"></div>
+  <div class="random-meta" id="randomMeta"></div>
+  <div class="random-stream" id="randomStream"></div>
+  <a class="random-link" id="randomLink" target="_blank" rel="noopener">Find it on JustWatch &rarr;</a>
+  <button class="random-btn random-again" id="randomAgain">Pick another</button>
+</div>
+
+<div class="table-container" id="tableContainer">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th data-sort="year">Year <span class="sort-arrow"></span></th>
+        <th data-sort="film">Film <span class="sort-arrow"></span></th>
+        <th data-sort="categories">Category Nominees <span class="sort-arrow"></span></th>
+        <th data-sort="people">Nominees <span class="sort-arrow"></span></th>
+        <th data-sort="winner">Won <span class="sort-arrow"></span></th>
+        <th data-sort="streaming">Streaming <span class="sort-arrow"></span></th>
+        <th>Watch</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<button class="scroll-top" id="scrollTop" title="Scroll to top">&#9650;</button>
+
+<script>
+// ===== STREAMING MAP =====
+const STREAMING = {
+  "10": "Rent/Buy",
+  "300": "Rent/Buy",
+  "1917": "Netflix",
+  "...And Justice for All": "Rent/Buy",
+  "101 Dalmatians": "Disney+",
+  "12 Years a Slave": "Netflix",
+  "127 Hours": "Hulu",
+  "21 Grams": "Rent/Buy",
+  "45 Years": "Rent/Buy",
+  "48 Hrs.": "Paramount+",
+  "9 to 5": "Peacock",
+  "A Beautiful Mind": "Rent/Buy",
+  "A Better Life": "Prime Video",
+  "A Bridge Too Far": "Rent/Buy",
+  "A Bug's Life": "Disney+",
+  "A Clockwork Orange": "Rent/Buy",
+  "A Complete Unknown": "Hulu",
+  "A Cry in the Dark": "Rent/Buy",
+  "A Few Good Men": "Rent/Buy",
+  "A Fish Called Wanda": "Rent/Buy",
+  "A Passage to India": "Rent/Buy",
+  "A Quiet Place Part II": "Paramount+",
+  "A Room with a View": "Max",
+  "A Serious Man": "Rent/Buy",
+  "A Single Man": "Paramount+",
+  "A Soldier's Story": "Rent/Buy",
+  "A Special Day": "Rent/Buy",
+  "A Star Is Born": "Rent/Buy",
+  "A Time to Kill": "Rent/Buy",
+  "A Touch of Class": "Rent/Buy",
+  "A Woman Under the Influence": "Max",
+  "About Schmidt": "Rent/Buy",
+  "Absence of Malice": "Rent/Buy",
+  "Ace Ventura: When Nature Calls": "Rent/Buy",
+  "Adaptation.": "Rent/Buy",
+  "Affliction": "Prime Video",
+  "Afterglow": "Prime Video",
+  "Aftersun": "Prime Video",
+  "Agnes of God": "Rent/Buy",
+  "Air Force One": "Rent/Buy",
+  "Airplane!": "Rent/Buy",
+  "Airport": "Prime Video",
+  "Airport 1975": "Rent/Buy",
+  "Aladdin": "Disney+",
+  "Albert Nobbs": "Rent/Buy",
+  "Ali": "Rent/Buy",
+  "Alice Doesn't Live Here Anymore": "Rent/Buy",
+  "Alice in Wonderland": "Disney+",
+  "Alice's Restaurant": "Rent/Buy",
+  "Alien": "Rent/Buy",
+  "Aliens": "Rent/Buy",
+  "All Quiet on the Western Front": "Netflix",
+  "All That Jazz": "Rent/Buy",
+  "All the President's Men": "Max",
+  "Alvin and the Chipmunks: The Squeakquel": "Disney+",
+  "Amadeus": "Rent/Buy",
+  "Amarcord": "Max",
+  "American Beauty": "Paramount+",
+  "American Fiction": "Rent/Buy",
+  "American Graffiti": "Rent/Buy",
+  "American History X": "Rent/Buy",
+  "American Hustle": "Rent/Buy",
+  "American Sniper": "Rent/Buy",
+  "Amour": "Rent/Buy",
+  "An Education": "Rent/Buy",
+  "An Officer and a Gentleman": "Paramount+",
+  "An Unmarried Woman": "Rent/Buy",
+  "Anatomy of a Fall": "Hulu",
+  "Anna": "Prime Video",
+  "Annie": "Rent/Buy",
+  "Annie Hall": "Rent/Buy",
+  "Anora": "Hulu",
+  "Another Round": "Prime Video",
+  "Ant-Man and the Wasp": "Disney+",
+  "Any Which Way You Can": "Rent/Buy",
+  "Apocalypse Now": "Rent/Buy",
+  "Apollo 13": "Rent/Buy",
+  "Aquaman": "Max",
+  "Argo": "Peacock",
+  "Armageddon": "Rent/Buy",
+  "Arrival": "Rent/Buy",
+  "Arthur": "Rent/Buy",
+  "As Good as It Gets": "Rent/Buy",
+  "At Eternity's Gate": "Rent/Buy",
+  "Atlantic City": "Rent/Buy",
+  "Atonement": "Rent/Buy",
+  "August: Osage County": "Prime Video",
+  "Austin Powers in Goldmember": "Rent/Buy",
+  "Austin Powers: The Spy Who Shagged Me": "Rent/Buy",
+  "Autumn Sonata": "Max",
+  "Avatar": "Disney+",
+  "Avatar: The Way of Water": "Disney+",
+  "Avengers: Age of Ultron": "Disney+",
+  "Avengers: Endgame": "Disney+",
+  "Avengers: Infinity War": "Disney+",
+  "Awakenings": "Rent/Buy",
+  "Away from Her": "Rent/Buy",
+  "Babe": "Rent/Buy",
+  "Babel": "Paramount+",
+  "Back to School": "Prime Video",
+  "Back to the Future": "Rent/Buy",
+  "Back to the Future Part II": "Rent/Buy",
+  "Backdraft": "Rent/Buy",
+  "Bad Boys for Life": "Rent/Buy",
+  "Barbie": "Max",
+  "Barry Lyndon": "Rent/Buy",
+  "Basic Instinct": "Paramount+",
+  "Batman": "Max",
+  "Batman Begins": "Max",
+  "Batman Forever": "Max",
+  "Batman Returns": "Max",
+  "Batman v Superman": "Max",
+  "Beasts of the Southern Wild": "Max",
+  "Beauty and the Beast": "Disney+",
+  "Bedknobs and Broomsticks": "Disney+",
+  "Beetlejuice": "Rent/Buy",
+  "Beetlejuice Beetlejuice": "Max",
+  "Before Night Falls": "Rent/Buy",
+  "Being John Malkovich": "Rent/Buy",
+  "Being Julia": "Rent/Buy",
+  "Being There": "Rent/Buy",
+  "Being the Ricardos": "Prime Video",
+  "Belfast": "Rent/Buy",
+  "Benji": "Netflix",
+  "Beverly Hills Cop": "Paramount+",
+  "Beverly Hills Cop II": "Paramount+",
+  "Big": "Disney+",
+  "Big Daddy": "Prime Video",
+  "Big Hero 6": "Disney+",
+  "Billy Elliot": "Rent/Buy",
+  "Billy Jack": "Rent/Buy",
+  "Birdman": "Hulu",
+  "Birds of Prey": "Max",
+  "Biutiful": "Prime Video",
+  "BlacKkKlansman": "Rent/Buy",
+  "Black Hawk Down": "Rent/Buy",
+  "Black Panther": "Disney+",
+  "Black Panther: Wakanda Forever": "Disney+",
+  "Black Swan": "Rent/Buy",
+  "Black Widow": "Disney+",
+  "Blazing Saddles": "Rent/Buy",
+  "Blonde": "Netflix",
+  "Blood Diamond": "Paramount+",
+  "Blue Jasmine": "Rent/Buy",
+  "Blue Sky": "Rent/Buy",
+  "Blue Valentine": "Rent/Buy",
+  "Blue Velvet": "Rent/Buy",
+  "Bohemian Rhapsody": "Prime Video",
+  "Bombshell": "Netflix",
+  "Born on the Fourth of July": "Rent/Buy",
+  "Bound for Glory": "Rent/Buy",
+  "Boyhood": "Netflix",
+  "Boys Don't Cry": "Rent/Buy",
+  "Boyz n the Hood": "Rent/Buy",
+  "Brave": "Disney+",
+  "Braveheart": "Paramount+",
+  "Breaking Away": "Rent/Buy",
+  "Breaking the Waves": "Rent/Buy",
+  "Bridge of Spies": "Rent/Buy",
+  "Bridget Jones's Diary": "Paramount+",
+  "Broadcast News": "Rent/Buy",
+  "Broadway Danny Rose": "Rent/Buy",
+  "Brokeback Mountain": "Rent/Buy",
+  "Brooklyn": "Rent/Buy",
+  "Bruce Almighty": "Rent/Buy",
+  "Bugsy": "Rent/Buy",
+  "Bullet Train": "Hulu",
+  "Bullets Over Broadway": "Prime Video",
+  "Butch Cassidy and the Sundance Kid": "Rent/Buy",
+  "Butterflies Are Free": "Rent/Buy",
+  "CODA": "Rent/Buy",
+  "Cabaret": "Rent/Buy",
+  "Call Me by Your Name": "Paramount+",
+  "Camille Claudel": "Rent/Buy",
+  "Can You Ever Forgive Me?": "Rent/Buy",
+  "Cape Fear": "Rent/Buy",
+  "Capote": "Rent/Buy",
+  "Captain America: Civil War": "Disney+",
+  "Captain America: The Winter Soldier": "Disney+",
+  "Captain Fantastic": "Rent/Buy",
+  "Captain Marvel": "Disney+",
+  "Captain Phillips": "Rent/Buy",
+  "Carnal Knowledge": "Rent/Buy",
+  "Carol": "Max",
+  "Carrie": "Prime Video",
+  "Cars": "Disney+",
+  "Cars 2": "Disney+",
+  "Casino": "Netflix",
+  "Casino Royale": "Netflix",
+  "Casper": "Rent/Buy",
+  "Cast Away": "Netflix",
+  "Catch-22": "Rent/Buy",
+  "Central Station": "Rent/Buy",
+  "Changeling": "Rent/Buy",
+  "Chaplin": "Rent/Buy",
+  "Chapter Two": "Rent/Buy",
+  "Chariots of Fire": "Rent/Buy",
+  "Charlie and the Chocolate Factory": "Paramount+",
+  "Chicago": "Paramount+",
+  "Children of a Lesser God": "Prime Video",
+  "Chinatown": "Paramount+",
+  "Chocolat": "Paramount+",
+  "Cinderella": "Disney+",
+  "Cinderella Liberty": "Rent/Buy",
+  "City Slickers": "Rent/Buy",
+  "City of God": "Paramount+",
+  "Claudine": "Rent/Buy",
+  "Clear and Present Danger": "Rent/Buy",
+  "Cliffhanger": "Rent/Buy",
+  "Close Encounters of the Third Kind": "Rent/Buy",
+  "Coal Miner's Daughter": "Rent/Buy",
+  "Cocktail": "Rent/Buy",
+  "Cocoon": "Rent/Buy",
+  "Cold Mountain": "Paramount+",
+  "Cold War": "Prime Video",
+  "Coming Home": "Rent/Buy",
+  "Coming to America": "Rent/Buy",
+  "Conclave": "Peacock",
+  "Country": "Rent/Buy",
+  "Cousin Cousine": "Rent/Buy",
+  "Crash": "Rent/Buy",
+  "Crazy Heart": "Hulu",
+  "Cries and Whispers": "Max",
+  "Crimes and Misdemeanors": "Rent/Buy",
+  "Crimes of the Heart": "Prime Video",
+  "Crocodile Dundee": "Rent/Buy",
+  "Crocodile Dundee II": "Rent/Buy",
+  "Crouching Tiger Hidden Dragon": "Rent/Buy",
+  "Crouching Tiger, Hidden Dragon": "Rent/Buy",
+  "Cyrano de Bergerac": "Rent/Buy",
+  "Dallas Buyers Club": "Peacock",
+  "Dances With Wolves": "Rent/Buy",
+  "Dances with Wolves": "Rent/Buy",
+  "Dangerous Liaisons": "Rent/Buy",
+  "Dark Eyes": "Rent/Buy",
+  "Darkest Hour": "Netflix",
+  "Das Boot": "Rent/Buy",
+  "Day for Night": "Rent/Buy",
+  "Dead Man Walking": "Paramount+",
+  "Dead Poets Society": "Hulu",
+  "Deadpool": "Disney+",
+  "Deadpool & Wolverine": "Disney+",
+  "Deadpool 2": "Disney+",
+  "Deep Impact": "Rent/Buy",
+  "Deliverance": "Rent/Buy",
+  "Despicable Me": "Netflix",
+  "Despicable Me 2": "Netflix",
+  "Despicable Me 3": "Netflix",
+  "Despicable Me 4": "Peacock",
+  "Diamonds Are Forever": "Netflix",
+  "Diary of a Mad Housewife": "Rent/Buy",
+  "Dick Tracy": "Rent/Buy",
+  "Die Hard": "Prime Video",
+  "Die Hard 2": "Rent/Buy",
+  "Die Hard with a Vengeance": "Rent/Buy",
+  "Dirty Harry": "Rent/Buy",
+  "District 9": "Netflix",
+  "Django Unchained": "Hulu",
+  "Doctor Dolittle": "Disney+",
+  "Doctor Strange": "Disney+",
+  "Doctor Strange in the Multiverse of Madness": "Disney+",
+  "Dog Day Afternoon": "Rent/Buy",
+  "Dolittle": "Rent/Buy",
+  "Don't Look Up": "Netflix",
+  "Doubt": "Paramount+",
+  "Drive My Car": "Rent/Buy",
+  "Driving Miss Daisy": "Rent/Buy",
+  "Dune": "Max",
+  "Dune: Part Two": "Max",
+  "Dunkirk": "Rent/Buy",
+  "E.T. the Extra-Terrestrial": "Rent/Buy",
+  "Earthquake": "Prime Video",
+  "Eastern Promises": "Rent/Buy",
+  "Educating Rita": "Rent/Buy",
+  "Elf": "Rent/Buy",
+  "Elizabeth": "Rent/Buy",
+  "Elizabeth: The Golden Age": "Rent/Buy",
+  "Elle": "Rent/Buy",
+  "Elvis": "Rent/Buy",
+  "Emilia P\\u00e9rez": "Netflix",
+  "Equus": "Rent/Buy",
+  "Erin Brockovich": "Netflix",
+  "Eternal Sunshine of the Spotless Mind": "Hulu",
+  "Eternals": "Disney+",
+  "Every Which Way but Loose": "Rent/Buy",
+  "Everything Everywhere All at Once": "Max",
+  "Extremely Loud & Incredibly Close": "Rent/Buy",
+  "F9": "Rent/Buy",
+  "Face to Face": "Netflix",
+  "Fanny and Alexander": "Max",
+  "Far from Heaven": "Rent/Buy",
+  "Fargo": "Prime Video",
+  "Fast & Furious 6": "Rent/Buy",
+  "Fast Five": "Rent/Buy",
+  "Fatal Attraction": "Paramount+",
+  "Fellini Satyricon": "Rent/Buy",
+  "Fences": "Paramount+",
+  "Ferris Bueller's Day Off": "Paramount+",
+  "Fiddler on the Roof": "Rent/Buy",
+  "Field of Dreams": "Netflix",
+  "Finding Dory": "Disney+",
+  "Finding Nemo": "Disney+",
+  "Finding Neverland": "Rent/Buy",
+  "Five Easy Pieces": "Rent/Buy",
+  "Five Nights at Freddy's": "Rent/Buy",
+  "Flashdance": "Paramount+",
+  "Flight": "Paramount+",
+  "Florence Foster Jenkins": "Paramount+",
+  "Footloose": "Paramount+",
+  "For Your Eyes Only": "Netflix",
+  "For the Boys": "Rent/Buy",
+  "Ford v Ferrari": "Netflix",
+  "Forrest Gump": "Prime Video",
+  "Four Weddings and a Funeral": "Rent/Buy",
+  "Foxcatcher": "Rent/Buy",
+  "Frances": "Prime Video",
+  "Free Guy": "Disney+",
+  "Frida": "Paramount+",
+  "Frost/Nixon": "Rent/Buy",
+  "Frozen": "Disney+",
+  "Frozen II": "Disney+",
+  "Frozen River": "Rent/Buy",
+  "Funny Lady": "Rent/Buy",
+  "Furious 7": "Rent/Buy",
+  "Gandhi": "Rent/Buy",
+  "Gangs of New York": "Paramount+",
+  "Get Out": "Max",
+  "Ghost": "Paramount+",
+  "Ghostbusters": "Hulu",
+  "Ghostbusters II": "Hulu",
+  "Give 'em Hell, Harry!": "Rent/Buy",
+  "Gladiator": "Paramount+",
+  "Gloria": "Rent/Buy",
+  "Gods and Monsters": "Rent/Buy",
+  "Godzilla": "Rent/Buy",
+  "Godzilla vs. Kong": "Rent/Buy",
+  "Godzilla x Kong: The New Empire": "Max",
+  "GoldenEye": "Netflix",
+  "Gone Girl": "Rent/Buy",
+  "Good Morning, Vietnam": "Rent/Buy",
+  "Good Night and Good Luck": "Rent/Buy",
+  "Good Night, and Good Luck": "Netflix",
+  "Good Will Hunting": "Paramount+",
+  "Goodfellas": "Rent/Buy",
+  "Gorillas in the Mist": "Rent/Buy",
+  "Gosford Park": "Rent/Buy",
+  "Gravity": "Rent/Buy",
+  "Grease": "Paramount+",
+  "Green Book": "Rent/Buy",
+  "Gremlins": "Rent/Buy",
+  "Guardians of the Galaxy": "Disney+",
+  "Guardians of the Galaxy Vol. 2": "Disney+",
+  "Guardians of the Galaxy Vol. 3": "Disney+",
+  "Hacksaw Ridge": "Hulu",
+  "Half Nelson": "Prime Video",
+  "Halloween": "Rent/Buy",
+  "Hancock": "Rent/Buy",
+  "Hannah and Her Sisters": "Rent/Buy",
+  "Hannibal": "Prime Video",
+  "Happy Feet": "Rent/Buy",
+  "Harriet": "Netflix",
+  "Harry Potter and the Chamber of Secrets": "Peacock",
+  "Harry Potter and the Deathly Hallows Part 1": "Peacock",
+  "Harry Potter and the Deathly Hallows Part 2": "Peacock",
+  "Harry Potter and the Goblet of Fire": "Peacock",
+  "Harry Potter and the Half-Blood Prince": "Peacock",
+  "Harry Potter and the Order of the Phoenix": "Peacock",
+  "Harry Potter and the Prisoner of Azkaban": "Peacock",
+  "Harry Potter and the Sorcerer's Stone": "Peacock",
+  "Harry and Tonto": "Rent/Buy",
+  "Heaven Can Wait": "Rent/Buy",
+  "Hedda": "Prime Video",
+  "Hell or High Water": "Netflix",
+  "Henry V": "Rent/Buy",
+  "Her": "Rent/Buy",
+  "Hester Street": "Rent/Buy",
+  "Hidden Figures": "Max",
+  "Hilary and Jackie": "Rent/Buy",
+  "Home Alone": "Disney+",
+  "Home Alone 2: Lost in New York": "Disney+",
+  "Honey, I Shrunk the Kids": "Disney+",
+  "Hook": "Prime Video",
+  "Hooper": "Rent/Buy",
+  "Hope and Glory": "Rent/Buy",
+  "Horton Hears a Who!": "Rent/Buy",
+  "Hotel Rwanda": "Rent/Buy",
+  "House of Sand and Fog": "Rent/Buy",
+  "How the Grinch Stole Christmas": "Rent/Buy",
+  "How to Train Your Dragon": "Netflix",
+  "Howards End": "Rent/Buy",
+  "Hugo": "Paramount+",
+  "Hustle & Flow": "Paramount+",
+  "I Am Legend": "Rent/Buy",
+  "I Am Sam": "Rent/Buy",
+  "I Never Sang for My Father": "Rent/Buy",
+  "I'm Still Here": "Netflix",
+  "I, Tonya": "Rent/Buy",
+  "Ice Age": "Disney+",
+  "Ice Age: The Meltdown": "Disney+",
+  "Il Postino: The Postman": "Rent/Buy",
+  "In America": "Prime Video",
+  "In the Bedroom": "Rent/Buy",
+  "In the Line of Fire": "Rent/Buy",
+  "In the Name of the Father": "Rent/Buy",
+  "In the Valley of Elah": "Rent/Buy",
+  "Inception": "Max",
+  "Incredibles 2": "Disney+",
+  "Indecent Proposal": "Paramount+",
+  "Independence Day": "Netflix",
+  "Indiana Jones and the Kingdom of the Crystal Skull": "Disney+",
+  "Indiana Jones and the Last Crusade": "Disney+",
+  "Indiana Jones and the Temple of Doom": "Disney+",
+  "Indochine": "Rent/Buy",
+  "Inglourious Basterds": "Rent/Buy",
+  "Inside Out": "Disney+",
+  "Inside Out 2": "Disney+",
+  "Interiors": "Rent/Buy",
+  "Interview with the Vampire": "Rent/Buy",
+  "Invictus": "Rent/Buy",
+  "Iris": "Rent/Buy",
+  "Iron Man": "Disney+",
+  "Iron Man 2": "Disney+",
+  "Iron Man 3": "Disney+",
+  "Ironweed": "Rent/Buy",
+  "It": "Max",
+  "It Chapter Two": "Max",
+  "JFK": "Rent/Buy",
+  "Jackie": "Rent/Buy",
+  "Jaws": "Rent/Buy",
+  "Jaws 2": "Rent/Buy",
+  "Jeremiah Johnson": "Rent/Buy",
+  "Jerry Maguire": "Rent/Buy",
+  "John Wick: Chapter 4": "Peacock",
+  "Jojo Rabbit": "Rent/Buy",
+  "Joker": "Max",
+  "Joy": "Rent/Buy",
+  "Judas and the Black Messiah": "Rent/Buy",
+  "Judy": "Max",
+  "Julia": "Rent/Buy",
+  "Julie & Julia": "Rent/Buy",
+  "Jumanji": "Rent/Buy",
+  "Jumanji: The Next Level": "Rent/Buy",
+  "Jumanji: Welcome to the Jungle": "Rent/Buy",
+  "Juno": "Hulu",
+  "Jurassic Park": "Rent/Buy",
+  "Jurassic World": "Netflix",
+  "Jurassic World Dominion": "Netflix",
+  "Jurassic World: Fallen Kingdom": "Netflix",
+  "Justice League": "Max",
+  "Killers of the Flower Moon": "Rent/Buy",
+  "Kindergarten Cop": "Rent/Buy",
+  "King Kong": "Rent/Buy",
+  "King Richard": "Rent/Buy",
+  "Kiss of the Spider Woman": "Hulu",
+  "Klute": "Rent/Buy",
+  "Kotch": "Paramount+",
+  "Kramer vs. Kramer": "Rent/Buy",
+  "Kung Fu Panda": "Rent/Buy",
+  "Kung Fu Panda 4": "Prime Video",
+  "L.A. Confidential": "Prime Video",
+  "La Cage aux Folles": "Rent/Buy",
+  "La La Land": "Prime Video",
+  "La Vie en Rose": "Rent/Buy",
+  "Lady Bird": "Rent/Buy",
+  "Lady Sings the Blues": "Rent/Buy",
+  "Last Tango in Paris": "Rent/Buy",
+  "Leaving Las Vegas": "Paramount+",
+  "Lenny": "Rent/Buy",
+  "Les Mis\\u00e9rables": "Peacock",
+  "Lethal Weapon": "Rent/Buy",
+  "Lethal Weapon 2": "Rent/Buy",
+  "Lethal Weapon 3": "Rent/Buy",
+  "Letters from Iwo Jima": "Rent/Buy",
+  "Liar Liar": "Rent/Buy",
+  "Licorice Pizza": "Netflix",
+  "Life Is Beautiful": "Rent/Buy",
+  "Life of Pi": "Max",
+  "Lincoln": "Rent/Buy",
+  "Lion": "Netflix",
+  "Little Big Man": "Rent/Buy",
+  "Little Children": "Rent/Buy",
+  "Little Miss Sunshine": "Max",
+  "Little Women": "Rent/Buy",
+  "Live and Let Die": "Netflix",
+  "Living": "Prime Video",
+  "Look Who's Talking": "Rent/Buy",
+  "Lorenzo's Oil": "Rent/Buy",
+  "Lost in Translation": "Peacock",
+  "Love Field": "Rent/Buy",
+  "Love Story": "Rent/Buy",
+  "Loving": "Paramount+",
+  "M*A*S*H": "Rent/Buy",
+  "Ma Rainey's Black Bottom": "Netflix",
+  "Mad Max: Fury Road": "Rent/Buy",
+  "Madagascar": "Peacock",
+  "Madagascar 3": "Peacock",
+  "Madagascar: Escape 2 Africa": "Peacock",
+  "Maestro": "Netflix",
+  "Magnum Force": "Rent/Buy",
+  "Malcolm X": "Rent/Buy",
+  "Maleficent": "Rent/Buy",
+  "Man of Steel": "Max",
+  "Manchester by the Sea": "Prime Video",
+  "Mank": "Netflix",
+  "Maria Full of Grace": "Max",
+  "Marriage Story": "Netflix",
+  "Marvin's Room": "Paramount+",
+  "Mary, Queen of Scots": "Rent/Buy",
+  "Master and Commander": "Rent/Buy",
+  "Master and Commander: The Far Side of the World": "Rent/Buy",
+  "Maverick": "Rent/Buy",
+  "McCabe & Mrs. Miller": "Rent/Buy",
+  "Meet the Fockers": "Rent/Buy",
+  "Meet the Parents": "Rent/Buy",
+  "Men in Black": "Rent/Buy",
+  "Men in Black II": "Rent/Buy",
+  "Michael Clayton": "Rent/Buy",
+  "Midnight Cowboy": "Rent/Buy",
+  "Midnight Express": "Rent/Buy",
+  "Midnight in Paris": "Rent/Buy",
+  "Midway": "Prime Video",
+  "Milk": "Rent/Buy",
+  "Million Dollar Baby": "Rent/Buy",
+  "Minari": "Prime Video",
+  "Minions": "Peacock",
+  "Minions: The Rise of Gru": "Peacock",
+  "Misery": "Netflix",
+  "Missing": "Hulu",
+  "Mission: Impossible": "Prime Video",
+  "Mission: Impossible - Fallout": "Paramount+",
+  "Mission: Impossible - Ghost Protocol": "Prime Video",
+  "Mission: Impossible 2": "Prime Video",
+  "Mississippi Burning": "Rent/Buy",
+  "Moana 2": "Disney+",
+  "Mona Lisa": "Max",
+  "Moneyball": "Rent/Buy",
+  "Monster": "Rent/Buy",
+  "Monster's Ball": "Rent/Buy",
+  "Monsters University": "Disney+",
+  "Monsters vs. Aliens": "Rent/Buy",
+  "Monsters, Inc.": "Disney+",
+  "Moonlight": "Max",
+  "Moonstruck": "Peacock",
+  "Moulin Rouge!": "Rent/Buy",
+  "Mr. & Mrs. Bridge": "Rent/Buy",
+  "Mr. & Mrs. Smith": "Hulu",
+  "Mr. Holland's Opus": "Disney+",
+  "Mr. Mom": "Rent/Buy",
+  "Mrs Brown": "Rent/Buy",
+  "Mrs Henderson Presents": "Rent/Buy",
+  "Mrs. Doubtfire": "Netflix",
+  "Mulan": "Disney+",
+  "Mulholland Drive": "Rent/Buy",
+  "Munich": "Rent/Buy",
+  "Murder on the Orient Express": "Rent/Buy",
+  "Murphy's Romance": "Rent/Buy",
+  "Music Box": "Rent/Buy",
+  "Music of the Heart": "Rent/Buy",
+  "My Best Friend's Wedding": "Rent/Buy",
+  "My Big Fat Greek Wedding": "Max",
+  "My Favorite Year": "Rent/Buy",
+  "My Left Foot": "Rent/Buy",
+  "My Life as a Dog": "Max",
+  "My Week with Marilyn": "Peacock",
+  "Mystic River": "Rent/Buy",
+  "Nashville": "Rent/Buy",
+  "National Lampoon's Animal House": "Rent/Buy",
+  "National Treasure": "Disney+",
+  "Nebraska": "Prime Video",
+  "Nell": "Rent/Buy",
+  "Network": "Rent/Buy",
+  "Nicholas and Alexandra": "Rent/Buy",
+  "Nickel Boys": "Prime Video",
+  "Nightmare Alley": "Rent/Buy",
+  "Nixon": "Prime Video",
+  "No Country for Old Men": "Paramount+",
+  "No Time to Die": "Netflix",
+  "Nobody's Fool": "Rent/Buy",
+  "Nomadland": "Rent/Buy",
+  "Norma Rae": "Rent/Buy",
+  "North Country": "Rent/Buy",
+  "Notes on a Scandal": "Rent/Buy",
+  "Nyad": "Netflix",
+  "Ocean's Eleven": "Rent/Buy",
+  "Octopussy": "Netflix",
+  "Oh, God!": "Rent/Buy",
+  "On Golden Pond": "Prime Video",
+  "Once Upon a Time in Hollywood": "Rent/Buy",
+  "One Flew Over the Cuckoo's Nest": "Rent/Buy",
+  "One True Thing": "Rent/Buy",
+  "Only When I Laugh": "Rent/Buy",
+  "Oppenheimer": "Rent/Buy",
+  "Ordinary People": "Rent/Buy",
+  "Out of Africa": "Prime Video",
+  "Over the Hedge": "Netflix",
+  "Oz the Great and Powerful": "Disney+",
+  "Pain and Glory": "Rent/Buy",
+  "Paper Moon": "Rent/Buy",
+  "Papillon": "Rent/Buy",
+  "Parallel Mothers": "Rent/Buy",
+  "Parasite": "Rent/Buy",
+  "Parenthood": "Prime Video",
+  "Passion Fish": "Prime Video",
+  "Past Lives": "Max",
+  "Patton": "Rent/Buy",
+  "Pearl Harbor": "Hulu",
+  "Peggy Sue Got Married": "Rent/Buy",
+  "Pelle the Conqueror": "Rent/Buy",
+  "Phantom Thread": "Rent/Buy",
+  "Philadelphia": "Rent/Buy",
+  "Philomena": "Rent/Buy",
+  "Pieces of a Woman": "Netflix",
+  "Pirates of the Caribbean: At World's End": "Disney+",
+  "Pirates of the Caribbean: Dead Man's Chest": "Disney+",
+  "Pirates of the Caribbean: On Stranger Tides": "Disney+",
+  "Pirates of the Caribbean: The Curse of the Black Pearl": "Disney+",
+  "Places in the Heart": "Rent/Buy",
+  "Planet of the Apes": "Rent/Buy",
+  "Platoon": "Rent/Buy",
+  "Pocahontas": "Disney+",
+  "Police Academy": "Rent/Buy",
+  "Pollock": "Rent/Buy",
+  "Poltergeist": "Rent/Buy",
+  "Poor Things": "Rent/Buy",
+  "Porky's": "Rent/Buy",
+  "Postcards from the Edge": "Rent/Buy",
+  "Precious": "Rent/Buy",
+  "Pretty Woman": "Hulu",
+  "Pride & Prejudice": "Rent/Buy",
+  "Private Benjamin": "Rent/Buy",
+  "Prizzi's Honor": "Rent/Buy",
+  "Promising Young Woman": "Peacock",
+  "Pulp Fiction": "Paramount+",
+  "Quantum of Solace": "Netflix",
+  "Quills": "Rent/Buy",
+  "Quiz Show": "Rent/Buy",
+  "Rabbit Hole": "Prime Video",
+  "Rachel Getting Married": "Rent/Buy",
+  "Raging Bull": "Prime Video",
+  "Raiders of the Lost Ark": "Disney+",
+  "Rain Man": "Prime Video",
+  "Rambling Rose": "Rent/Buy",
+  "Rambo: First Blood Part II": "Paramount+",
+  "Ran": "Rent/Buy",
+  "Ransom": "Rent/Buy",
+  "Ratatouille": "Disney+",
+  "Ray": "Netflix",
+  "Reds": "Rent/Buy",
+  "Requiem for a Dream": "Prime Video",
+  "Resurrection": "Rent/Buy",
+  "Return of the Jedi": "Disney+",
+  "Return of the Pink Panther": "Rent/Buy",
+  "Reuben, Reuben": "Rent/Buy",
+  "Revenge of the Pink Panther": "Rent/Buy",
+  "Reversal of Fortune": "Rent/Buy",
+  "Risky Business": "Rent/Buy",
+  "Robin Hood": "Max",
+  "Robin Hood: Prince of Thieves": "Rent/Buy",
+  "Rocky": "Rent/Buy",
+  "Rocky II": "Rent/Buy",
+  "Rocky III": "Rent/Buy",
+  "Rocky IV": "Rent/Buy",
+  "Rogue One": "Disney+",
+  "Roma": "Netflix",
+  "Roman J. Israel, Esq.": "Rent/Buy",
+  "Romancing the Stone": "Rent/Buy",
+  "Room": "Hulu",
+  "Round Midnight": "Rent/Buy",
+  "Runaway Bride": "Paramount+",
+  "Runaway Train": "Rent/Buy",
+  "Rush Hour": "Rent/Buy",
+  "Rush Hour 2": "Rent/Buy",
+  "Rustin": "Netflix",
+  "Ruthless People": "Rent/Buy",
+  "Ryan's Daughter": "Rent/Buy",
+  "Salvador": "Rent/Buy",
+  "Same Time, Next Year": "Netflix",
+  "Saturday Night Fever": "Paramount+",
+  "Save the Tiger": "Rent/Buy",
+  "Saving Private Ryan": "Rent/Buy",
+  "Scary Movie": "Paramount+",
+  "Scent of a Woman": "Prime Video",
+  "Schindler's List": "Peacock",
+  "Se7en": "Rent/Buy",
+  "Seabiscuit": "Paramount+",
+  "Secrets & Lies": "Max",
+  "Selma": "Paramount+",
+  "Semi-Tough": "Rent/Buy",
+  "Sense and Sensibility": "Rent/Buy",
+  "Serpico": "Paramount+",
+  "Seven Beauties": "Rent/Buy",
+  "Shadowlands": "Rent/Buy",
+  "Shakespeare in Love": "Paramount+",
+  "Shampoo": "Rent/Buy",
+  "Shang-Chi": "Disney+",
+  "Sherlock Holmes: A Game of Shadows": "Prime Video",
+  "Shine": "Rent/Buy",
+  "Shirley Valentine": "Rent/Buy",
+  "Short Cuts": "Rent/Buy",
+  "Shrek": "Prime Video",
+  "Shrek 2": "Peacock",
+  "Shrek Forever After": "Prime Video",
+  "Shrek the Third": "Prime Video",
+  "Sideways": "Rent/Buy",
+  "Signs": "Rent/Buy",
+  "Silent Movie": "Rent/Buy",
+  "Silkwood": "Rent/Buy",
+  "Silver Linings Playbook": "Hulu",
+  "Silver Streak": "Rent/Buy",
+  "Sing Sing": "Max",
+  "Sister Act": "Disney+",
+  "Six Degrees of Separation": "Prime Video",
+  "Skyfall": "Netflix",
+  "Sleeping with the Enemy": "Hulu",
+  "Sleepless in Seattle": "Prime Video",
+  "Sleuth": "Rent/Buy",
+  "Sling Blade": "Rent/Buy",
+  "Slumdog Millionaire": "Rent/Buy",
+  "Smokey and the Bandit": "Rent/Buy",
+  "Smokey and the Bandit II": "Rent/Buy",
+  "Something's Gotta Give": "Rent/Buy",
+  "Sonic the Hedgehog": "Paramount+",
+  "Sonic the Hedgehog 2": "Paramount+",
+  "Sophie's Choice": "Peacock",
+  "Sound of Freedom": "Prime Video",
+  "Sound of Metal": "Prime Video",
+  "Sounder": "Prime Video",
+  "Spectre": "Netflix",
+  "Speed": "Hulu",
+  "Spencer": "Paramount+",
+  "Spider-Man": "Disney+",
+  "Spider-Man 2": "Disney+",
+  "Spider-Man 3": "Disney+",
+  "Spider-Man: Across the Spider-Verse": "Disney+",
+  "Spider-Man: Far From Home": "Disney+",
+  "Spider-Man: Homecoming": "Disney+",
+  "Spider-Man: No Way Home": "Rent/Buy",
+  "Spies Like Us": "Rent/Buy",
+  "Splash": "Disney+",
+  "Spotlight": "Peacock",
+  "Stakeout": "Rent/Buy",
+  "Stand and Deliver": "Rent/Buy",
+  "Star Trek": "Paramount+",
+  "Star Trek II: The Wrath of Khan": "Paramount+",
+  "Star Trek III: The Search for Spock": "Paramount+",
+  "Star Trek IV: The Voyage Home": "Paramount+",
+  "Star Trek Into Darkness": "Paramount+",
+  "Star Trek: The Motion Picture": "Paramount+",
+  "Star Wars": "Disney+",
+  "Star Wars: Episode I": "Disney+",
+  "Star Wars: Episode II": "Disney+",
+  "Star Wars: Episode III": "Disney+",
+  "Star Wars: The Force Awakens": "Disney+",
+  "Star Wars: The Last Jedi": "Disney+",
+  "Star Wars: The Rise of Skywalker": "Disney+",
+  "Starman": "Rent/Buy",
+  "Starting Over": "Rent/Buy",
+  "Staying Alive": "Paramount+",
+  "Steve Jobs": "Peacock",
+  "Still Alice": "Rent/Buy",
+  "Stir Crazy": "Rent/Buy",
+  "Stripes": "Rent/Buy",
+  "Sudden Impact": "Rent/Buy",
+  "Suicide Squad": "Max",
+  "Summer Wishes, Winter Dreams": "Rent/Buy",
+  "Summer of '42": "Rent/Buy",
+  "Sunday Bloody Sunday": "Rent/Buy",
+  "Superman": "Max",
+  "Superman II": "Max",
+  "Superman Returns": "Max",
+  "Sweeney Todd: The Demon Barber of Fleet Street": "Paramount+",
+  "Sweet Dreams": "Prime Video",
+  "Sweet and Lowdown": "Prime Video",
+  "T\\u00e1r": "Peacock",
+  "Talk to Her": "Rent/Buy",
+  "Talladega Nights": "Rent/Buy",
+  "Tangled": "Disney+",
+  "Tarzan": "Disney+",
+  "Taxi Driver": "Rent/Buy",
+  "Taylor Swift: The Eras Tour": "Disney+",
+  "Ted": "Peacock",
+  "Teenage Mutant Ninja Turtles": "Rent/Buy",
+  "Tender Mercies": "Rent/Buy",
+  "Terminator 2: Judgment Day": "Paramount+",
+  "Terms of Endearment": "Rent/Buy",
+  "Tess": "Rent/Buy",
+  "Testament": "Rent/Buy",
+  "The Accidental Tourist": "Rent/Buy",
+  "The Accused": "Prime Video",
+  "The Addams Family": "Rent/Buy",
+  "The Amazing Spider-Man": "Disney+",
+  "The Amityville Horror": "Rent/Buy",
+  "The Apostle": "Rent/Buy",
+  "The Apple Dumpling Gang": "Disney+",
+  "The Apprentice": "Prime Video",
+  "The Aristocats": "Disney+",
+  "The Artist": "Rent/Buy",
+  "The Avengers": "Disney+",
+  "The Aviator": "Rent/Buy",
+  "The Bad News Bears": "Rent/Buy",
+  "The Banshees of Inisherin": "Paramount+",
+  "The Batman": "Max",
+  "The Best Little Whorehouse in Texas": "Rent/Buy",
+  "The Big Chill": "Rent/Buy",
+  "The Big Short": "Paramount+",
+  "The Birdcage": "Rent/Buy",
+  "The Blair Witch Project": "Max",
+  "The Blind Side": "Rent/Buy",
+  "The Blue Lagoon": "Rent/Buy",
+  "The Blues Brothers": "Rent/Buy",
+  "The Bodyguard": "Rent/Buy",
+  "The Bostonians": "Rent/Buy",
+  "The Bourne Supremacy": "Rent/Buy",
+  "The Bourne Ultimatum": "Rent/Buy",
+  "The Boys from Brazil": "Prime Video",
+  "The Bridges of Madison County": "Rent/Buy",
+  "The Brutalist": "Max",
+  "The Buddy Holly Story": "Rent/Buy",
+  "The Call of the Wild": "Disney+",
+  "The Cannonball Run": "Rent/Buy",
+  "The China Syndrome": "Rent/Buy",
+  "The Chronicles of Narnia": "Disney+",
+  "The Cider House Rules": "Prime Video",
+  "The Client": "Rent/Buy",
+  "The Color Purple": "Rent/Buy",
+  "The Color of Money": "Rent/Buy",
+  "The Contender": "Rent/Buy",
+  "The Conversation": "Prime Video",
+  "The Crying Game": "Paramount+",
+  "The Curious Case of Benjamin Button": "Paramount+",
+  "The Da Vinci Code": "Paramount+",
+  "The Danish Girl": "Rent/Buy",
+  "The Dark Knight": "Max",
+  "The Dark Knight Rises": "Max",
+  "The Day After Tomorrow": "Rent/Buy",
+  "The Deep": "Rent/Buy",
+  "The Deer Hunter": "Rent/Buy",
+  "The Departed": "Rent/Buy",
+  "The Descendants": "Hulu",
+  "The Devil Wears Prada": "Disney+",
+  "The Diving Bell and the Butterfly": "Rent/Buy",
+  "The Dresser": "Rent/Buy",
+  "The Electric Horseman": "Rent/Buy",
+  "The Elephant Man": "Rent/Buy",
+  "The Emigrants": "Rent/Buy",
+  "The Empire Strikes Back": "Disney+",
+  "The End of the Affair": "Rent/Buy",
+  "The Enforcer": "Rent/Buy",
+  "The English Patient": "Paramount+",
+  "The Exorcist": "Rent/Buy",
+  "The Eyes of Tammy Faye": "Rent/Buy",
+  "The Fabelmans": "Peacock",
+  "The Fabulous Baker Boys": "Rent/Buy",
+  "The Father": "Rent/Buy",
+  "The Favourite": "Rent/Buy",
+  "The Field": "Prime Video",
+  "The Fighter": "Paramount+",
+  "The Firm": "Paramount+",
+  "The Fisher King": "Rent/Buy",
+  "The Flintstones": "Rent/Buy",
+  "The Four Seasons": "Rent/Buy",
+  "The French Connection": "Rent/Buy",
+  "The French Lieutenant's Woman": "Prime Video",
+  "The Fugitive": "Rent/Buy",
+  "The Full Monty": "Rent/Buy",
+  "The Getaway": "Prime Video",
+  "The Girl with the Dragon Tattoo": "Rent/Buy",
+  "The Godfather": "Paramount+",
+  "The Godfather Part II": "Paramount+",
+  "The Godfather Part III": "Rent/Buy",
+  "The Golden Child": "Paramount+",
+  "The Goodbye Girl": "Rent/Buy",
+  "The Goonies": "Rent/Buy",
+  "The Grand Budapest Hotel": "Rent/Buy",
+  "The Great Santini": "Rent/Buy",
+  "The Great White Hope": "Rent/Buy",
+  "The Green Mile": "Rent/Buy",
+  "The Grifters": "Paramount+",
+  "The Grinch": "Rent/Buy",
+  "The Hangover": "Rent/Buy",
+  "The Hangover Part II": "Rent/Buy",
+  "The Help": "Hulu",
+  "The Hobbit: An Unexpected Journey": "Max",
+  "The Hobbit: The Battle of the Five Armies": "Max",
+  "The Holdovers": "Rent/Buy",
+  "The Hospital": "Rent/Buy",
+  "The Hours": "Paramount+",
+  "The Hunger Games": "Rent/Buy",
+  "The Hunger Games: Catching Fire": "Rent/Buy",
+  "The Hunger Games: Mockingjay Part 1": "Rent/Buy",
+  "The Hunger Games: Mockingjay Part 2": "Rent/Buy",
+  "The Hunt for Red October": "Paramount+",
+  "The Hurricane": "Paramount+",
+  "The Hurt Locker": "Netflix",
+  "The Imitation Game": "Rent/Buy",
+  "The Impossible": "Rent/Buy",
+  "The Incredibles": "Disney+",
+  "The Insider": "Hulu",
+  "The Invisible Man": "Peacock",
+  "The Irishman": "Netflix",
+  "The Iron Lady": "Rent/Buy",
+  "The Jerk": "Rent/Buy",
+  "The Jewel of the Nile": "Rent/Buy",
+  "The Jungle Book": "Disney+",
+  "The Karate Kid": "Rent/Buy",
+  "The Karate Kid Part II": "Rent/Buy",
+  "The Kids Are All Right": "Rent/Buy",
+  "The Killing Fields": "Rent/Buy",
+  "The King's Speech": "Rent/Buy",
+  "The LEGO Movie": "Netflix",
+  "The Last Detail": "Rent/Buy",
+  "The Last Emperor": "Max",
+  "The Last King of Scotland": "Rent/Buy",
+  "The Last Picture Show": "Rent/Buy",
+  "The Last Station": "Hulu",
+  "The Last Temptation of Christ": "Rent/Buy",
+  "The Lion King": "Disney+",
+  "The Little Mermaid": "Disney+",
+  "The Longest Yard": "Paramount+",
+  "The Lorax": "Netflix",
+  "The Lord of the Rings: The Fellowship of the Ring": "Max",
+  "The Lord of the Rings: The Return of the King": "Max",
+  "The Lord of the Rings: The Two Towers": "Max",
+  "The Lost Daughter": "Netflix",
+  "The Lost World: Jurassic Park": "Rent/Buy",
+  "The Madness of King George": "Rent/Buy",
+  "The Man Who Would Be King": "Rent/Buy",
+  "The Man in the Glass Booth": "Rent/Buy",
+  "The Martian": "Paramount+",
+  "The Mask": "Rent/Buy",
+  "The Master": "Prime Video",
+  "The Matrix": "Rent/Buy",
+  "The Matrix Reloaded": "Rent/Buy",
+  "The Mission": "Rent/Buy",
+  "The Morning After": "Peacock",
+  "The Mummy": "Hulu",
+  "The Mummy Returns": "Hulu",
+  "The Muppet Movie": "Disney+",
+  "The Naked Gun": "Prime Video",
+  "The Nutty Professor": "Rent/Buy",
+  "The Omen": "Rent/Buy",
+  "The Passion of the Christ": "Netflix",
+  "The Pelican Brief": "Rent/Buy",
+  "The People vs. Larry Flynt": "Rent/Buy",
+  "The Perfect Storm": "Rent/Buy",
+  "The Pianist": "Prime Video",
+  "The Piano": "Rent/Buy",
+  "The Player": "Max",
+  "The Polar Express": "Rent/Buy",
+  "The Poseidon Adventure": "Rent/Buy",
+  "The Post": "Rent/Buy",
+  "The Power of the Dog": "Netflix",
+  "The Prince of Tides": "Rent/Buy",
+  "The Pursuit of Happyness": "Rent/Buy",
+  "The Queen": "Paramount+",
+  "The Quiet American": "Rent/Buy",
+  "The Reader": "Prime Video",
+  "The Remains of the Day": "Rent/Buy",
+  "The Revenant": "Hulu",
+  "The Right Stuff": "Rent/Buy",
+  "The River": "Rent/Buy",
+  "The Rock": "Rent/Buy",
+  "The Rocky Horror Picture Show": "Rent/Buy",
+  "The Rose": "Rent/Buy",
+  "The Ruling Class": "Max",
+  "The Santa Clause": "Disney+",
+  "The Savages": "Rent/Buy",
+  "The Secret Life of Pets": "Netflix",
+  "The Secret of My Success": "Rent/Buy",
+  "The Shape of Water": "Max",
+  "The Shawshank Redemption": "Rent/Buy",
+  "The Silence of the Lambs": "Prime Video",
+  "The Simpsons Movie": "Disney+",
+  "The Sixth Sense": "Rent/Buy",
+  "The Social Network": "Rent/Buy",
+  "The Spy Who Loved Me": "Netflix",
+  "The Sting": "Netflix",
+  "The Story of Adele H.": "Rent/Buy",
+  "The Straight Story": "Disney+",
+  "The Stunt Man": "Prime Video",
+  "The Substance": "Max",
+  "The Sunshine Boys": "Rent/Buy",
+  "The Super Mario Bros. Movie": "Peacock",
+  "The Sweet Hereafter": "Rent/Buy",
+  "The Theory of Everything": "Rent/Buy",
+  "The Thin Red Line": "Rent/Buy",
+  "The Towering Inferno": "Rent/Buy",
+  "The Tragedy of Macbeth": "Rent/Buy",
+  "The Tree of Life": "Rent/Buy",
+  "The Trial of Billy Jack": "Rent/Buy",
+  "The Trial of the Chicago 7": "Netflix",
+  "The Trip to Bountiful": "Prime Video",
+  "The Truman Show": "Peacock",
+  "The Turning Point": "Netflix",
+  "The Twilight Saga: Breaking Dawn Part 1": "Max",
+  "The Twilight Saga: Eclipse": "Max",
+  "The Twilight Saga: New Moon": "Max",
+  "The Two Popes": "Netflix",
+  "The United States vs. Billie Holiday": "Hulu",
+  "The Untouchables": "Rent/Buy",
+  "The Verdict": "Rent/Buy",
+  "The Visitor": "Rent/Buy",
+  "The Waterboy": "Rent/Buy",
+  "The Way We Were": "Rent/Buy",
+  "The Whale": "Max",
+  "The Wife": "Rent/Buy",
+  "The Wings of the Dove": "Rent/Buy",
+  "The Witches of Eastwick": "Rent/Buy",
+  "The Wolf of Wall Street": "Paramount+",
+  "The Wrestler": "Rent/Buy",
+  "The Zone of Interest": "Rent/Buy",
+  "Thelma & Louise": "Rent/Buy",
+  "There Will Be Blood": "Paramount+",
+  "There's Something About Mary": "Hulu",
+  "They Shoot Horses, Don't They?": "Rent/Buy",
+  "Thor": "Disney+",
+  "Thor: Love and Thunder": "Disney+",
+  "Thor: Ragnarok": "Disney+",
+  "Three Billboards Outside Ebbing Missouri": "Max",
+  "Three Billboards Outside Ebbing, Missouri": "Max",
+  "Three Colours: Red": "Max",
+  "Three Days of the Condor": "Rent/Buy",
+  "Three Men and a Baby": "Disney+",
+  "Tick, Tick... Boom!": "Netflix",
+  "Time Bandits": "Max",
+  "Tinker Tailor Soldier Spy": "Rent/Buy",
+  "Titanic": "Netflix",
+  "To Leslie": "Rent/Buy",
+  "Tom & Viv": "Prime Video",
+  "Tommy": "Rent/Buy",
+  "Tomorrow Never Dies": "Netflix",
+  "Tootsie": "Rent/Buy",
+  "Top Gun": "Paramount+",
+  "Top Gun: Maverick": "Paramount+",
+  "Tora! Tora! Tora!": "Rent/Buy",
+  "Total Recall": "Paramount+",
+  "Toy Story": "Disney+",
+  "Toy Story 2": "Disney+",
+  "Toy Story 3": "Disney+",
+  "Toy Story 4": "Disney+",
+  "Trading Places": "Paramount+",
+  "Traffic": "Rent/Buy",
+  "Training Day": "Rent/Buy",
+  "Transamerica": "Rent/Buy",
+  "Transformers": "Paramount+",
+  "Transformers: Age of Extinction": "Paramount+",
+  "Transformers: Dark of the Moon": "Paramount+",
+  "Transformers: Revenge of the Fallen": "Paramount+",
+  "Travels with My Aunt": "Rent/Buy",
+  "Triangle of Sadness": "Netflix",
+  "Tribute": "Rent/Buy",
+  "True Grit": "Paramount+",
+  "True Lies": "Rent/Buy",
+  "Trumbo": "Rent/Buy",
+  "Tumbleweeds": "Rent/Buy",
+  "Twilight": "Max",
+  "Twins": "Netflix",
+  "Twister": "Rent/Buy",
+  "Twisters": "Peacock",
+  "Two Days, One Night": "Rent/Buy",
+  "Ulee's Gold": "Rent/Buy",
+  "Under the Volcano": "Max",
+  "Unfaithful": "Rent/Buy",
+  "Unforgiven": "Rent/Buy",
+  "United 93": "Rent/Buy",
+  "Up": "Disney+",
+  "Up in the Air": "Paramount+",
+  "Venom": "Disney+",
+  "Venom: Let There Be Carnage": "Disney+",
+  "Venus": "Rent/Buy",
+  "Vera Drake": "Rent/Buy",
+  "Vice": "Rent/Buy",
+  "Victor/Victoria": "Rent/Buy",
+  "Volver": "Rent/Buy",
+  "WALL-E": "Disney+",
+  "Wag the Dog": "Rent/Buy",
+  "Walk the Line": "Rent/Buy",
+  "Wall Street": "Rent/Buy",
+  "War Horse": "Rent/Buy",
+  "War of the Worlds": "Prime Video",
+  "WarGames": "Rent/Buy",
+  "Wayne's World": "Rent/Buy",
+  "Wedding Crashers": "Max",
+  "West Side Story": "Disney+",
+  "Whale Rider": "Rent/Buy",
+  "What Lies Beneath": "Paramount+",
+  "What Women Want": "Paramount+",
+  "What's Love Got to Do with It": "Rent/Buy",
+  "What's Up, Doc?": "Rent/Buy",
+  "Whiplash": "Netflix",
+  "Who Framed Roger Rabbit": "Disney+",
+  "Wicked": "Prime Video",
+  "Wild": "Rent/Buy",
+  "Winter's Bone": "Rent/Buy",
+  "Witness": "Paramount+",
+  "Women Talking": "Rent/Buy",
+  "Women in Love": "Rent/Buy",
+  "Wonder Woman": "Max",
+  "Woodstock": "Rent/Buy",
+  "Working Girl": "Rent/Buy",
+  "X-Men": "Disney+",
+  "X-Men: Days of Future Past": "Disney+",
+  "X-Men: The Last Stand": "Disney+",
+  "You Can Count on Me": "Rent/Buy",
+  "Young Frankenstein": "Rent/Buy",
+  "Z": "Paramount+",
+  "Zero Dark Thirty": "Netflix",
+  "Zootopia": "Disney+",
+  "Les Mis\\u00e9rables": "Peacock",
+  "T\\u00e1r": "Peacock",
+  "Emilia P\\u00e9rez": "Netflix",
+  "Lovers and Other Strangers": "Prime Video",
+  "The Conformist": "Rent/Buy",
+  "The Garden of the Finzi-Continis": "Rent/Buy",
+  "Pete 'n' Tillie": "Rent/Buy",
+  "The Paper Chase": "Rent/Buy",
+  "The Apprenticeship of Duddy Kravitz": "Rent/Buy",
+  "Profumo di donna": "Prime Video",
+  "Fellini's Casanova": "Rent/Buy",
+  "The Seven-Per-Cent Solution": "Rent/Buy",
+  "Voyage of the Damned": "Rent/Buy",
+  "I Never Promised You a Rose Garden": "Prime Video",
+  "That Obscure Object of Desire": "Rent/Buy",
+  "Bloodbrothers": "Rent/Buy",
+  "California Suite": "Rent/Buy",
+  "A Little Romance": "Rent/Buy",
+  "Breaker Morant": "Prime Video",
+  "Pennies from Heaven": "Rent/Buy",
+  "Prince of the City": "Rent/Buy",
+  "Ragtime": "Rent/Buy",
+  "Betrayal": "Rent/Buy",
+  "Greystoke: The Legend of Tarzan, Lord of the Apes": "Rent/Buy",
+  "Stand by Me": "Rent/Buy",
+  "The Dead": "Rent/Buy",
+  "Full Metal Jacket": "Rent/Buy",
+  "Little Dorrit": "Rent/Buy",
+  "The Unbearable Lightness of Being": "Rent/Buy",
+  "Enemies, A Love Story": "Prime Video",
+  "Europa Europa": "Max",
+  "Fried Green Tomatoes": "Prime Video",
+  "Enchanted April": "Rent/Buy",
+  "A River Runs Through It": "Rent/Buy",
+  "The Age of Innocence": "Rent/Buy",
+  "The Crucible": "Rent/Buy",
+  "Hamlet": "Rent/Buy",
+  "Trainspotting": "Rent/Buy",
+  "Donnie Brasco": "Rent/Buy",
+  "Out of Sight": "Rent/Buy",
+  "Primary Colors": "Rent/Buy",
+  "A Simple Plan": "Prime Video",
+  "Election": "Paramount+",
+  "The Talented Mr. Ripley": "Paramount+",
+  "O Brother, Where Art Thou?": "Hulu",
+  "Wonder Boys": "Rent/Buy",
+  "Ghost World": "Rent/Buy",
+  "About a Boy": "Rent/Buy",
+  "Adaptation": "Rent/Buy",
+  "American Splendor": "Max",
+  "Before Sunset": "Rent/Buy",
+  "The Motorcycle Diaries": "Rent/Buy",
+  "The Constant Gardener": "Rent/Buy",
+  "A History of Violence": "Rent/Buy",
+  "Borat: Cultural Learnings of America for Make Benefit Glorious Nation of Kazakhstan": "Hulu",
+  "Children of Men": "Rent/Buy",
+  "In the Loop": "Rent/Buy",
+  "The Ides of March": "Rent/Buy",
+  "Before Midnight": "Rent/Buy",
+  "Inherent Vice": "Rent/Buy",
+  "The Disaster Artist": "Rent/Buy",
+  "Logan": "Disney+",
+  "Molly's Game": "Netflix",
+  "Mudbound": "Netflix",
+  "The Ballad of Buster Scruggs": "Netflix",
+  "If Beale Street Could Talk": "Rent/Buy",
+  "Glass Onion: A Knives Out Mystery": "Netflix",
+  "Emilia Pérez": "Netflix",
+  "Joe": "Rent/Buy",
+  "My Night at Maud's": "Max",
+  "Investigation of a Citizen Above Suspicion": "Prime Video",
+  "The Candidate": "Rent/Buy",
+  "The Discreet Charm of the Bourgeoisie": "Rent/Buy",
+  "Murmur of the Heart": "Rent/Buy",
+  "Young Winston": "Rent/Buy",
+  "And Now My Love": "Rent/Buy",
+  "Lies My Father Told Me": "Rent/Buy",
+  "The Front": "Rent/Buy",
+  "The Late Show": "Rent/Buy",
+  "...And Justice for All.": "Rent/Buy",
+  "Manhattan": "Rent/Buy",
+  "Melvin and Howard": "Rent/Buy",
+  "Brubaker": "Rent/Buy",
+  "Fame": "Rent/Buy",
+  "Mon oncle d'Amérique": "Rent/Buy",
+  "Diner": "Rent/Buy",
+  "El Norte": "Rent/Buy",
+  "Brazil": "Rent/Buy",
+  "The Official Story": "Rent/Buy",
+  "The Purple Rose of Cairo": "Rent/Buy",
+  "My Beautiful Laundrette": "Rent/Buy",
+  "Au Revoir Les Enfants (Goodbye, Children)": "Max",
+  "Radio Days": "Rent/Buy",
+  "Bull Durham": "Rent/Buy",
+  "Running on Empty": "Rent/Buy",
+  "Do the Right Thing": "Rent/Buy",
+  "Sex, Lies, and Videotape": "Rent/Buy",
+  "When Harry Met Sally...": "Hulu",
+  "Alice": "Netflix",
+  "Avalon": "Rent/Buy",
+  "Green Card": "Prime Video",
+  "Metropolitan": "Max",
+  "Grand Canyon": "Rent/Buy",
+  "Husbands and Wives": "Rent/Buy",
+  "Dave": "Rent/Buy",
+  "Heavenly Creatures": "Rent/Buy",
+  "The Usual Suspects": "Prime Video",
+  "Mighty Aphrodite": "Prime Video",
+  "Lone Star": "Rent/Buy",
+  "Boogie Nights": "Hulu",
+  "Deconstructing Harry": "Netflix",
+  "Bulworth": "Rent/Buy",
+  "Magnolia": "Hulu",
+  "Topsy-Turvy": "Max",
+  "Almost Famous": "Paramount+",
+  "Amélie": "Rent/Buy",
+  "Memento": "Prime Video",
+  "The Royal Tenenbaums": "Rent/Buy",
+  "Y Tu Mamá También": "Netflix",
+  "The Barbarian Invasions": "Rent/Buy",
+  "Dirty Pretty Things": "Rent/Buy",
+  "Match Point": "Netflix",
+  "The Squid and the Whale": "Netflix",
+  "Syriana": "Rent/Buy",
+  "Pan's Labyrinth": "Rent/Buy",
+  "Lars and the Real Girl": "Rent/Buy",
+  "Happy-Go-Lucky": "Rent/Buy",
+  "In Bruges": "Rent/Buy",
+  "The Messenger": "Rent/Buy",
+  "Another Year": "Rent/Buy",
+  "Bridesmaids": "Rent/Buy",
+  "Margin Call": "Prime Video",
+  "A Separation": "Rent/Buy",
+  "Moonrise Kingdom": "Netflix",
+  "Nightcrawler": "Rent/Buy",
+  "Ex Machina": "Netflix",
+  "Straight Outta Compton": "Rent/Buy",
+  "The Lobster": "Max",
+  "20th Century Women": "Netflix",
+  "The Big Sick": "Prime Video",
+  "First Reformed": "Prime Video",
+  "Knives Out": "Prime Video",
+  "The Worst Person in the World": "Rent/Buy",
+  "Tár": "Peacock",
+  "May December": "Netflix",
+  "A Real Pain": "Rent/Buy",
+  "September 5": "Prime Video"
+};
+
+function getStreaming(film) {
+  return STREAMING[film] || "";
+}
+
+function streamingClass(s) {
+  if (!s) return "";
+  const map = {"Netflix":"netflix","Prime Video":"prime","Hulu":"hulu","Max":"max","Disney+":"disney","Paramount+":"paramount","Peacock":"peacock","Apple TV+":"apple","Rent/Buy":"rentbuy"};
+  return map[s] || "";
+}
+
+// ===== BOX OFFICE TOP 10 DATA =====
+const BOX_OFFICE = {
+  1970:["Love Story","Airport","M*A*S*H","Patton","The Aristocats","Tora! Tora! Tora!","Catch-22","Little Big Man","Woodstock","Ryan's Daughter"],
+  1971:["Fiddler on the Roof","The French Connection","Diamonds Are Forever","Dirty Harry","Billy Jack","Summer of '42","The Last Picture Show","A Clockwork Orange","Bedknobs and Broomsticks","Carnal Knowledge"],
+  1972:["The Godfather","The Poseidon Adventure","What's Up, Doc?","Deliverance","Jeremiah Johnson","Cabaret","The Getaway","Last Tango in Paris","Butterflies Are Free","Everything You Always Wanted to Know About Sex"],
+  1973:["The Exorcist","The Sting","American Graffiti","Papillon","The Way We Were","Magnum Force","Live and Let Die","Robin Hood","Paper Moon","Serpico"],
+  1974:["Blazing Saddles","The Towering Inferno","Young Frankenstein","Earthquake","The Trial of Billy Jack","The Godfather Part II","Airport 1975","The Longest Yard","Benji","Murder on the Orient Express"],
+  1975:["Jaws","One Flew Over the Cuckoo's Nest","The Rocky Horror Picture Show","Shampoo","Dog Day Afternoon","Return of the Pink Panther","Funny Lady","Three Days of the Condor","The Apple Dumpling Gang","The Man Who Would Be King"],
+  1976:["Rocky","A Star Is Born","King Kong","All the President's Men","The Omen","The Bad News Bears","Silver Streak","The Enforcer","Midway","Silent Movie"],
+  1977:["Star Wars","Close Encounters of the Third Kind","Smokey and the Bandit","Saturday Night Fever","A Bridge Too Far","The Deep","The Spy Who Loved Me","Oh, God!","Annie Hall","Semi-Tough"],
+  1978:["Grease","Superman","National Lampoon's Animal House","Every Which Way but Loose","Heaven Can Wait","Hooper","Jaws 2","Revenge of the Pink Panther","The Deer Hunter","Halloween"],
+  1979:["Kramer vs. Kramer","Rocky II","Alien","The Amityville Horror","Star Trek: The Motion Picture","Apocalypse Now","The Muppet Movie","10","The Jerk","The Electric Horseman"],
+  1980:["The Empire Strikes Back","9 to 5","Stir Crazy","Airplane!","Any Which Way You Can","Private Benjamin","Coal Miner's Daughter","Smokey and the Bandit II","The Blue Lagoon","The Blues Brothers"],
+  1981:["Raiders of the Lost Ark","On Golden Pond","Superman II","Arthur","Stripes","The Cannonball Run","Chariots of Fire","For Your Eyes Only","The Four Seasons","Time Bandits"],
+  1982:["E.T. the Extra-Terrestrial","Tootsie","An Officer and a Gentleman","Rocky III","Porky's","Star Trek II: The Wrath of Khan","48 Hrs.","Poltergeist","The Best Little Whorehouse in Texas","Annie"],
+  1983:["Return of the Jedi","Terms of Endearment","Flashdance","Trading Places","WarGames","Octopussy","Sudden Impact","Staying Alive","Mr. Mom","Risky Business"],
+  1984:["Beverly Hills Cop","Ghostbusters","Indiana Jones and the Temple of Doom","Gremlins","The Karate Kid","Police Academy","Footloose","Romancing the Stone","Star Trek III: The Search for Spock","Splash"],
+  1985:["Back to the Future","Rambo: First Blood Part II","Rocky IV","The Color Purple","Out of Africa","Cocoon","The Jewel of the Nile","Witness","The Goonies","Spies Like Us"],
+  1986:["Top Gun","Crocodile Dundee","Platoon","The Karate Kid Part II","Star Trek IV: The Voyage Home","Back to School","Aliens","The Golden Child","Ruthless People","Ferris Bueller's Day Off"],
+  1987:["Three Men and a Baby","Fatal Attraction","Beverly Hills Cop II","Good Morning, Vietnam","Moonstruck","The Untouchables","The Secret of My Success","Stakeout","Lethal Weapon","The Witches of Eastwick"],
+  1988:["Rain Man","Who Framed Roger Rabbit","Coming to America","Big","Twins","Crocodile Dundee II","Die Hard","The Naked Gun","Cocktail","Beetlejuice"],
+  1989:["Batman","Indiana Jones and the Last Crusade","Lethal Weapon 2","Look Who's Talking","Honey, I Shrunk the Kids","Back to the Future Part II","Ghostbusters II","Driving Miss Daisy","Parenthood","Dead Poets Society"],
+  1990:["Home Alone","Ghost","Dances with Wolves","Pretty Woman","Teenage Mutant Ninja Turtles","The Hunt for Red October","Total Recall","Die Hard 2","Dick Tracy","Kindergarten Cop"],
+  1991:["Terminator 2: Judgment Day","Robin Hood: Prince of Thieves","The Silence of the Lambs","City Slickers","Hook","The Addams Family","Sleeping with the Enemy","The Naked Gun 2½: The Smell of Fear","Backdraft","Hot Shots!"],
+  1992:["Aladdin","The Bodyguard","Home Alone 2: Lost in New York","Batman Returns","Lethal Weapon 3","A Few Good Men","Sister Act","Bram Stoker's Dracula","Wayne's World","Basic Instinct"],
+  1993:["Jurassic Park","Mrs. Doubtfire","The Fugitive","The Firm","Sleepless in Seattle","Indecent Proposal","In the Line of Fire","The Pelican Brief","Schindler's List","Cliffhanger"],
+  1994:["The Lion King","Forrest Gump","True Lies","The Santa Clause","The Flintstones","Clear and Present Danger","Speed","The Mask","Maverick","Interview with the Vampire"],
+  1995:["Toy Story","Batman Forever","Apollo 13","Pocahontas","Ace Ventura: When Nature Calls","GoldenEye","Jumanji","Casper","Se7en","Die Hard with a Vengeance"],
+  1996:["Independence Day","Twister","Mission: Impossible","Jerry Maguire","Ransom","101 Dalmatians","The Rock","The Nutty Professor","The Birdcage","A Time to Kill"],
+  1997:["Titanic","Men in Black","The Lost World: Jurassic Park","Liar Liar","Air Force One","As Good as It Gets","Good Will Hunting","My Best Friend's Wedding","Star Wars (Special Edition)","Tomorrow Never Dies"],
+  1998:["Saving Private Ryan","Armageddon","There's Something About Mary","A Bug's Life","The Waterboy","Doctor Dolittle","Rush Hour","Deep Impact","Godzilla","Mulan"],
+  1999:["Star Wars: Episode I","The Sixth Sense","Toy Story 2","Austin Powers: The Spy Who Shagged Me","The Matrix","Tarzan","Big Daddy","The Mummy","Runaway Bride","The Blair Witch Project"],
+  2000:["How the Grinch Stole Christmas","Cast Away","Mission: Impossible 2","Gladiator","What Women Want","The Perfect Storm","Meet the Parents","X-Men","Scary Movie","What Lies Beneath"],
+  2001:["Harry Potter and the Sorcerer's Stone","The Lord of the Rings: The Fellowship of the Ring","Shrek","Monsters, Inc.","Rush Hour 2","The Mummy Returns","Pearl Harbor","Ocean's Eleven","Planet of the Apes","Hannibal"],
+  2002:["Spider-Man","The Lord of the Rings: The Two Towers","Star Wars: Episode II","Harry Potter and the Chamber of Secrets","My Big Fat Greek Wedding","Signs","Austin Powers in Goldmember","Men in Black II","Ice Age","Chicago"],
+  2003:["The Lord of the Rings: The Return of the King","Finding Nemo","Pirates of the Caribbean: The Curse of the Black Pearl","The Matrix Reloaded","Bruce Almighty","X2: X-Men United","Elf","Terminator 3: Rise of the Machines","Bad Boys II","The Matrix Revolutions"],
+  2004:["Shrek 2","Spider-Man 2","The Passion of the Christ","Meet the Fockers","The Incredibles","Harry Potter and the Prisoner of Azkaban","The Day After Tomorrow","The Bourne Supremacy","National Treasure","The Polar Express"],
+  2005:["Star Wars: Episode III","The Chronicles of Narnia","Harry Potter and the Goblet of Fire","War of the Worlds","King Kong","Wedding Crashers","Charlie and the Chocolate Factory","Batman Begins","Madagascar","Mr. & Mrs. Smith"],
+  2006:["Pirates of the Caribbean: Dead Man's Chest","Cars","X-Men: The Last Stand","The Da Vinci Code","Superman Returns","Ice Age: The Meltdown","Over the Hedge","Happy Feet","Talladega Nights","Casino Royale"],
+  2007:["Spider-Man 3","Shrek the Third","Transformers","Pirates of the Caribbean: At World's End","Harry Potter and the Order of the Phoenix","I Am Legend","The Bourne Ultimatum","300","Ratatouille","The Simpsons Movie"],
+  2008:["The Dark Knight","Iron Man","Indiana Jones and the Kingdom of the Crystal Skull","Hancock","WALL-E","Kung Fu Panda","Twilight","Madagascar: Escape 2 Africa","Quantum of Solace","Horton Hears a Who!"],
+  2009:["Avatar","Transformers: Revenge of the Fallen","Harry Potter and the Half-Blood Prince","The Twilight Saga: New Moon","Up","The Hangover","Star Trek","The Blind Side","Alvin and the Chipmunks: The Squeakquel","Monsters vs. Aliens"],
+  2010:["Toy Story 3","Alice in Wonderland","Iron Man 2","The Twilight Saga: Eclipse","Inception","Harry Potter and the Deathly Hallows Part 1","Despicable Me","Shrek Forever After","How to Train Your Dragon","Tangled"],
+  2011:["Harry Potter and the Deathly Hallows Part 2","Transformers: Dark of the Moon","The Twilight Saga: Breaking Dawn Part 1","The Hangover Part II","Pirates of the Caribbean: On Stranger Tides","Fast Five","Mission: Impossible - Ghost Protocol","Cars 2","Sherlock Holmes: A Game of Shadows","Thor"],
+  2012:["The Avengers","The Dark Knight Rises","The Hunger Games","Skyfall","The Hobbit: An Unexpected Journey","The Amazing Spider-Man","Brave","Ted","Madagascar 3","The Lorax"],
+  2013:["The Hunger Games: Catching Fire","Iron Man 3","Frozen","Despicable Me 2","Man of Steel","Monsters University","Gravity","Fast & Furious 6","Oz the Great and Powerful","Star Trek Into Darkness"],
+  2014:["American Sniper","The Hunger Games: Mockingjay Part 1","Guardians of the Galaxy","Captain America: The Winter Soldier","The LEGO Movie","The Hobbit: The Battle of the Five Armies","Transformers: Age of Extinction","Maleficent","X-Men: Days of Future Past","Big Hero 6"],
+  2015:["Star Wars: The Force Awakens","Jurassic World","Avengers: Age of Ultron","Inside Out","Furious 7","Minions","The Hunger Games: Mockingjay Part 2","The Martian","Cinderella","Spectre"],
+  2016:["Rogue One","Finding Dory","Captain America: Civil War","The Secret Life of Pets","The Jungle Book","Deadpool","Zootopia","Batman v Superman","Suicide Squad","Doctor Strange"],
+  2017:["Star Wars: The Last Jedi","Beauty and the Beast","Wonder Woman","Guardians of the Galaxy Vol. 2","Spider-Man: Homecoming","It","Thor: Ragnarok","Despicable Me 3","Justice League","Jumanji: Welcome to the Jungle"],
+  2018:["Black Panther","Avengers: Infinity War","Incredibles 2","Jurassic World: Fallen Kingdom","Aquaman","Deadpool 2","The Grinch","Mission: Impossible - Fallout","Ant-Man and the Wasp","Venom"],
+  2019:["Avengers: Endgame","The Lion King","Toy Story 4","Frozen II","Captain Marvel","Star Wars: The Rise of Skywalker","Spider-Man: Far From Home","Aladdin","Joker","It Chapter Two"],
+  2020:["Bad Boys for Life","1917","Sonic the Hedgehog","Jumanji: The Next Level","Star Wars: The Rise of Skywalker","Birds of Prey","Dolittle","Little Women","The Invisible Man","The Call of the Wild"],
+  2021:["Spider-Man: No Way Home","Shang-Chi","Venom: Let There Be Carnage","Black Widow","F9","No Time to Die","Eternals","Free Guy","A Quiet Place Part II","Godzilla vs. Kong"],
+  2022:["Top Gun: Maverick","Black Panther: Wakanda Forever","Doctor Strange in the Multiverse of Madness","Avatar: The Way of Water","Jurassic World Dominion","The Batman","Thor: Love and Thunder","Minions: The Rise of Gru","Bullet Train","Sonic the Hedgehog 2"],
+  2023:["Barbie","The Super Mario Bros. Movie","Spider-Man: Across the Spider-Verse","Guardians of the Galaxy Vol. 3","Oppenheimer","The Little Mermaid","John Wick: Chapter 4","Sound of Freedom","Taylor Swift: The Eras Tour","Five Nights at Freddy's"],
+  2024:["Inside Out 2","Deadpool & Wolverine","Wicked","Moana 2","Despicable Me 4","Beetlejuice Beetlejuice","Dune: Part Two","Twisters","Godzilla x Kong: The New Empire","Kung Fu Panda 4"]
+};
+
+// ===== BUILD ALL DATA =====
+const ALL = [];
+
+// --- Best Picture 1970-1995 (year = film year, keep as-is) ---
+const bpRaw1 = [
+  [1970,"Patton",true],
+  [1970,"Airport",false],
+  [1970,"Five Easy Pieces",false],
+  [1970,"Love Story",false],
+  [1970,"M*A*S*H",false],
+  [1971,"The French Connection",true],
+  [1971,"A Clockwork Orange",false],
+  [1971,"Fiddler on the Roof",false],
+  [1971,"The Last Picture Show",false],
+  [1971,"Nicholas and Alexandra",false],
+  [1972,"The Godfather",true],
+  [1972,"Cabaret",false],
+  [1972,"Deliverance",false],
+  [1972,"The Emigrants",false],
+  [1972,"Sounder",false],
+  [1973,"The Sting",true],
+  [1973,"American Graffiti",false],
+  [1973,"Cries and Whispers",false],
+  [1973,"The Exorcist",false],
+  [1973,"A Touch of Class",false],
+  [1974,"The Godfather Part II",true],
+  [1974,"Chinatown",false],
+  [1974,"The Conversation",false],
+  [1974,"Lenny",false],
+  [1974,"The Towering Inferno",false],
+  [1975,"One Flew Over the Cuckoo's Nest",true],
+  [1975,"Barry Lyndon",false],
+  [1975,"Dog Day Afternoon",false],
+  [1975,"Jaws",false],
+  [1975,"Nashville",false],
+  [1976,"Rocky",true],
+  [1976,"All the President's Men",false],
+  [1976,"Bound for Glory",false],
+  [1976,"Network",false],
+  [1976,"Taxi Driver",false],
+  [1977,"Annie Hall",true],
+  [1977,"The Goodbye Girl",false],
+  [1977,"Julia",false],
+  [1977,"Star Wars",false],
+  [1977,"The Turning Point",false],
+  [1978,"The Deer Hunter",true],
+  [1978,"Coming Home",false],
+  [1978,"Heaven Can Wait",false],
+  [1978,"Midnight Express",false],
+  [1978,"An Unmarried Woman",false],
+  [1979,"Kramer vs. Kramer",true],
+  [1979,"All That Jazz",false],
+  [1979,"Apocalypse Now",false],
+  [1979,"Breaking Away",false],
+  [1979,"Norma Rae",false],
+  [1980,"Ordinary People",true],
+  [1980,"Coal Miner's Daughter",false],
+  [1980,"The Elephant Man",false],
+  [1980,"Raging Bull",false],
+  [1980,"Tess",false],
+  [1981,"Chariots of Fire",true],
+  [1981,"Atlantic City",false],
+  [1981,"On Golden Pond",false],
+  [1981,"Raiders of the Lost Ark",false],
+  [1981,"Reds",false],
+  [1982,"Gandhi",true],
+  [1982,"E.T. the Extra-Terrestrial",false],
+  [1982,"Missing",false],
+  [1982,"Tootsie",false],
+  [1982,"The Verdict",false],
+  [1983,"Terms of Endearment",true],
+  [1983,"The Big Chill",false],
+  [1983,"The Dresser",false],
+  [1983,"The Right Stuff",false],
+  [1983,"Tender Mercies",false],
+  [1984,"Amadeus",true],
+  [1984,"The Killing Fields",false],
+  [1984,"A Passage to India",false],
+  [1984,"Places in the Heart",false],
+  [1984,"A Soldier's Story",false],
+  [1985,"Out of Africa",true],
+  [1985,"The Color Purple",false],
+  [1985,"Kiss of the Spider Woman",false],
+  [1985,"Prizzi's Honor",false],
+  [1985,"Witness",false],
+  [1986,"Platoon",true],
+  [1986,"Children of a Lesser God",false],
+  [1986,"Hannah and Her Sisters",false],
+  [1986,"The Mission",false],
+  [1986,"A Room with a View",false],
+  [1987,"The Last Emperor",true],
+  [1987,"Broadcast News",false],
+  [1987,"Fatal Attraction",false],
+  [1987,"Hope and Glory",false],
+  [1987,"Moonstruck",false],
+  [1988,"Rain Man",true],
+  [1988,"The Accidental Tourist",false],
+  [1988,"Dangerous Liaisons",false],
+  [1988,"Mississippi Burning",false],
+  [1988,"Working Girl",false],
+  [1989,"Driving Miss Daisy",true],
+  [1989,"Born on the Fourth of July",false],
+  [1989,"Dead Poets Society",false],
+  [1989,"Field of Dreams",false],
+  [1989,"My Left Foot",false],
+  [1990,"Dances With Wolves",true],
+  [1990,"Awakenings",false],
+  [1990,"Ghost",false],
+  [1990,"The Godfather Part III",false],
+  [1990,"Goodfellas",false],
+  [1991,"The Silence of the Lambs",true],
+  [1991,"Beauty and the Beast",false],
+  [1991,"Bugsy",false],
+  [1991,"JFK",false],
+  [1991,"The Prince of Tides",false],
+  [1992,"Unforgiven",true],
+  [1992,"The Crying Game",false],
+  [1992,"A Few Good Men",false],
+  [1992,"Howards End",false],
+  [1992,"Scent of a Woman",false],
+  [1993,"Schindler's List",true],
+  [1993,"The Fugitive",false],
+  [1993,"In the Name of the Father",false],
+  [1993,"The Piano",false],
+  [1993,"The Remains of the Day",false],
+  [1994,"Forrest Gump",true],
+  [1994,"Four Weddings and a Funeral",false],
+  [1994,"Pulp Fiction",false],
+  [1994,"Quiz Show",false],
+  [1994,"The Shawshank Redemption",false],
+  [1995,"Braveheart",true],
+  [1995,"Apollo 13",false],
+  [1995,"Babe",false],
+  [1995,"Il Postino: The Postman",false],
+  [1995,"Sense and Sensibility",false]
+];
+bpRaw1.forEach(([y,f,w]) => ALL.push({year:y, film:f, category:"Best Picture", person:"", winner:w, streaming:getStreaming(f)}));
+
+// --- Best Picture 1996-2024 (raw year = ceremony year, subtract 1) ---
+const bpRaw2 = [
+  [1997,"The English Patient",true],[1997,"Fargo",false],[1997,"Jerry Maguire",false],[1997,"Secrets & Lies",false],[1997,"Shine",false],
+  [1998,"Titanic",true],[1998,"As Good as It Gets",false],[1998,"Good Will Hunting",false],[1998,"L.A. Confidential",false],[1998,"The Full Monty",false],
+  [1999,"Shakespeare in Love",true],[1999,"Elizabeth",false],[1999,"Life Is Beautiful",false],[1999,"Saving Private Ryan",false],[1999,"The Thin Red Line",false],
+  [2000,"American Beauty",true],[2000,"The Cider House Rules",false],[2000,"The Green Mile",false],[2000,"The Insider",false],[2000,"The Sixth Sense",false],
+  [2001,"Gladiator",true],[2001,"Chocolat",false],[2001,"Crouching Tiger Hidden Dragon",false],[2001,"Erin Brockovich",false],[2001,"Traffic",false],
+  [2002,"A Beautiful Mind",true],[2002,"Gosford Park",false],[2002,"In the Bedroom",false],[2002,"Moulin Rouge!",false],[2002,"The Lord of the Rings: The Fellowship of the Ring",false],
+  [2003,"Chicago",true],[2003,"Gangs of New York",false],[2003,"The Hours",false],[2003,"The Lord of the Rings: The Two Towers",false],[2003,"The Pianist",false],
+  [2004,"The Lord of the Rings: The Return of the King",true],[2004,"Lost in Translation",false],[2004,"Master and Commander",false],[2004,"Mystic River",false],[2004,"Seabiscuit",false],
+  [2005,"Million Dollar Baby",true],[2005,"Finding Neverland",false],[2005,"Ray",false],[2005,"Sideways",false],[2005,"The Aviator",false],
+  [2006,"Crash",true],[2006,"Brokeback Mountain",false],[2006,"Capote",false],[2006,"Good Night and Good Luck",false],[2006,"Munich",false],
+  [2007,"The Departed",true],[2007,"Babel",false],[2007,"Letters from Iwo Jima",false],[2007,"Little Miss Sunshine",false],[2007,"The Queen",false],
+  [2008,"No Country for Old Men",true],[2008,"Atonement",false],[2008,"Juno",false],[2008,"Michael Clayton",false],[2008,"There Will Be Blood",false],
+  [2009,"Slumdog Millionaire",true],[2009,"Frost/Nixon",false],[2009,"Milk",false],[2009,"The Curious Case of Benjamin Button",false],[2009,"The Reader",false],
+  [2010,"The Hurt Locker",true],[2010,"A Serious Man",false],[2010,"An Education",false],[2010,"Avatar",false],[2010,"District 9",false],[2010,"Inglourious Basterds",false],[2010,"Precious",false],[2010,"The Blind Side",false],[2010,"Up",false],[2010,"Up in the Air",false],
+  [2011,"The King's Speech",true],[2011,"127 Hours",false],[2011,"Black Swan",false],[2011,"Inception",false],[2011,"The Fighter",false],[2011,"The Kids Are All Right",false],[2011,"The Social Network",false],[2011,"Toy Story 3",false],[2011,"True Grit",false],[2011,"Winter's Bone",false],
+  [2012,"The Artist",true],[2012,"Extremely Loud & Incredibly Close",false],[2012,"Hugo",false],[2012,"Midnight in Paris",false],[2012,"Moneyball",false],[2012,"The Descendants",false],[2012,"The Help",false],[2012,"The Tree of Life",false],[2012,"War Horse",false],
+  [2013,"Argo",true],[2013,"Amour",false],[2013,"Beasts of the Southern Wild",false],[2013,"Django Unchained",false],[2013,"Les Mis\u00e9rables",false],[2013,"Life of Pi",false],[2013,"Lincoln",false],[2013,"Silver Linings Playbook",false],[2013,"Zero Dark Thirty",false],
+  [2014,"12 Years a Slave",true],[2014,"American Hustle",false],[2014,"Captain Phillips",false],[2014,"Dallas Buyers Club",false],[2014,"Gravity",false],[2014,"Her",false],[2014,"Nebraska",false],[2014,"Philomena",false],[2014,"The Wolf of Wall Street",false],
+  [2015,"Birdman",true],[2015,"American Sniper",false],[2015,"Boyhood",false],[2015,"Selma",false],[2015,"The Grand Budapest Hotel",false],[2015,"The Imitation Game",false],[2015,"The Theory of Everything",false],[2015,"Whiplash",false],
+  [2016,"Spotlight",true],[2016,"Bridge of Spies",false],[2016,"Brooklyn",false],[2016,"Mad Max: Fury Road",false],[2016,"Room",false],[2016,"The Big Short",false],[2016,"The Martian",false],[2016,"The Revenant",false],
+  [2017,"Moonlight",true],[2017,"Arrival",false],[2017,"Fences",false],[2017,"Hacksaw Ridge",false],[2017,"Hell or High Water",false],[2017,"Hidden Figures",false],[2017,"La La Land",false],[2017,"Lion",false],[2017,"Manchester by the Sea",false],
+  [2018,"The Shape of Water",true],[2018,"Call Me by Your Name",false],[2018,"Darkest Hour",false],[2018,"Dunkirk",false],[2018,"Get Out",false],[2018,"Lady Bird",false],[2018,"Phantom Thread",false],[2018,"The Post",false],[2018,"Three Billboards Outside Ebbing Missouri",false],
+  [2019,"Green Book",true],[2019,"A Star Is Born",false],[2019,"BlacKkKlansman",false],[2019,"Black Panther",false],[2019,"Bohemian Rhapsody",false],[2019,"Roma",false],[2019,"The Favourite",false],[2019,"Vice",false],
+  [2020,"Parasite",true],[2020,"1917",false],[2020,"Ford v Ferrari",false],[2020,"Jojo Rabbit",false],[2020,"Joker",false],[2020,"Little Women",false],[2020,"Marriage Story",false],[2020,"Once Upon a Time in Hollywood",false],[2020,"The Irishman",false],
+  [2021,"Nomadland",true],[2021,"Judas and the Black Messiah",false],[2021,"Mank",false],[2021,"Minari",false],[2021,"Promising Young Woman",false],[2021,"Sound of Metal",false],[2021,"The Father",false],[2021,"The Trial of the Chicago 7",false],
+  [2022,"CODA",true],[2022,"Belfast",false],[2022,"Don't Look Up",false],[2022,"Drive My Car",false],[2022,"Dune",false],[2022,"King Richard",false],[2022,"Licorice Pizza",false],[2022,"Nightmare Alley",false],[2022,"The Power of the Dog",false],[2022,"West Side Story",false],
+  [2023,"Everything Everywhere All at Once",true],[2023,"All Quiet on the Western Front",false],[2023,"Avatar: The Way of Water",false],[2023,"Elvis",false],[2023,"The Banshees of Inisherin",false],[2023,"The Fabelmans",false],[2023,"Top Gun: Maverick",false],[2023,"Triangle of Sadness",false],[2023,"T\u00e1r",false],[2023,"Women Talking",false],
+  [2024,"Oppenheimer",true],[2024,"American Fiction",false],[2024,"Anatomy of a Fall",false],[2024,"Barbie",false],[2024,"Killers of the Flower Moon",false],[2024,"Maestro",false],[2024,"Past Lives",false],[2024,"Poor Things",false],[2024,"The Holdovers",false],[2024,"The Zone of Interest",false],
+  [2025,"Anora",true],[2025,"A Complete Unknown",false],[2025,"Conclave",false],[2025,"Dune: Part Two",false],[2025,"Emilia P\u00e9rez",false],[2025,"I'm Still Here",false],[2025,"Nickel Boys",false],[2025,"The Brutalist",false],[2025,"The Substance",false],[2025,"Wicked",false]
+];
+bpRaw2.forEach(([ry,f,w]) => {
+  const y = ry - 1;
+  if (y >= 1970 && y <= 2024) ALL.push({year:y, film:f, category:"Best Picture", person:"", winner:w, streaming:getStreaming(f)});
+});
+
+// --- Best Director (ceremony year, subtract 1) ---
+const dirRaw = [
+  [1970,"John Schlesinger","Midnight Cowboy",true],[1970,"Costa-Gavras","Z",false],[1970,"George Roy Hill","Butch Cassidy and the Sundance Kid",false],[1970,"Arthur Penn","Alice's Restaurant",false],[1970,"Sydney Pollack","They Shoot Horses, Don't They?",false],
+  [1971,"Franklin J. Schaffner","Patton",true],[1971,"Robert Altman","M*A*S*H",false],[1971,"Federico Fellini","Fellini Satyricon",false],[1971,"Arthur Hiller","Love Story",false],[1971,"Ken Russell","Women in Love",false],
+  [1972,"William Friedkin","The French Connection",true],[1972,"Peter Bogdanovich","The Last Picture Show",false],[1972,"Norman Jewison","Fiddler on the Roof",false],[1972,"Stanley Kubrick","A Clockwork Orange",false],[1972,"John Schlesinger","Sunday Bloody Sunday",false],
+  [1973,"Bob Fosse","Cabaret",true],[1973,"John Boorman","Deliverance",false],[1973,"Francis Ford Coppola","The Godfather",false],[1973,"Joseph L. Mankiewicz","Sleuth",false],[1973,"Jan Troell","The Emigrants",false],
+  [1974,"George Roy Hill","The Sting",true],[1974,"Ingmar Bergman","Cries and Whispers",false],[1974,"Bernardo Bertolucci","Last Tango in Paris",false],[1974,"William Friedkin","The Exorcist",false],[1974,"George Lucas","American Graffiti",false],
+  [1975,"Francis Ford Coppola","The Godfather Part II",true],[1975,"John Cassavetes","A Woman Under the Influence",false],[1975,"Bob Fosse","Lenny",false],[1975,"Roman Polanski","Chinatown",false],[1975,"Fran\u00e7ois Truffaut","Day for Night",false],
+  [1976,"Milo\u0161 Forman","One Flew Over the Cuckoo's Nest",true],[1976,"Robert Altman","Nashville",false],[1976,"Federico Fellini","Amarcord",false],[1976,"Stanley Kubrick","Barry Lyndon",false],[1976,"Sidney Lumet","Dog Day Afternoon",false],
+  [1977,"John G. Avildsen","Rocky",true],[1977,"Ingmar Bergman","Face to Face",false],[1977,"Sidney Lumet","Network",false],[1977,"Alan J. Pakula","All the President's Men",false],[1977,"Lina Wertm\u00fcller","Seven Beauties",false],
+  [1978,"Woody Allen","Annie Hall",true],[1978,"George Lucas","Star Wars",false],[1978,"Herbert Ross","The Turning Point",false],[1978,"Steven Spielberg","Close Encounters of the Third Kind",false],[1978,"Fred Zinnemann","Julia",false],
+  [1979,"Michael Cimino","The Deer Hunter",true],[1979,"Woody Allen","Interiors",false],[1979,"Hal Ashby","Coming Home",false],[1979,"Warren Beatty","Heaven Can Wait",false],[1979,"Alan Parker","Midnight Express",false],
+  [1980,"Robert Benton","Kramer vs. Kramer",true],[1980,"Francis Ford Coppola","Apocalypse Now",false],[1980,"Bob Fosse","All That Jazz",false],[1980,"\u00c9douard Molinaro","La Cage aux Folles",false],[1980,"Peter Yates","Breaking Away",false],
+  [1981,"Robert Redford","Ordinary People",true],[1981,"David Lynch","The Elephant Man",false],[1981,"Roman Polanski","Tess",false],[1981,"Richard Rush","The Stunt Man",false],[1981,"Martin Scorsese","Raging Bull",false],
+  [1982,"Warren Beatty","Reds",true],[1982,"Hugh Hudson","Chariots of Fire",false],[1982,"Louis Malle","Atlantic City",false],[1982,"Mark Rydell","On Golden Pond",false],[1982,"Steven Spielberg","Raiders of the Lost Ark",false],
+  [1983,"Richard Attenborough","Gandhi",true],[1983,"Sidney Lumet","The Verdict",false],[1983,"Wolfgang Petersen","Das Boot",false],[1983,"Sydney Pollack","Tootsie",false],[1983,"Steven Spielberg","E.T. the Extra-Terrestrial",false],
+  [1984,"James L. Brooks","Terms of Endearment",true],[1984,"Bruce Beresford","Tender Mercies",false],[1984,"Ingmar Bergman","Fanny and Alexander",false],[1984,"Mike Nichols","Silkwood",false],[1984,"Peter Yates","The Dresser",false],
+  [1985,"Milo\u0161 Forman","Amadeus",true],[1985,"Woody Allen","Broadway Danny Rose",false],[1985,"Robert Benton","Places in the Heart",false],[1985,"Roland Joff\u00e9","The Killing Fields",false],[1985,"David Lean","A Passage to India",false],
+  [1986,"Sydney Pollack","Out of Africa",true],[1986,"H\u00e9ctor Babenco","Kiss of the Spider Woman",false],[1986,"John Huston","Prizzi's Honor",false],[1986,"Akira Kurosawa","Ran",false],[1986,"Peter Weir","Witness",false],
+  [1987,"Oliver Stone","Platoon",true],[1987,"Woody Allen","Hannah and Her Sisters",false],[1987,"James Ivory","A Room with a View",false],[1987,"Roland Joff\u00e9","The Mission",false],[1987,"David Lynch","Blue Velvet",false],
+  [1988,"Bernardo Bertolucci","The Last Emperor",true],[1988,"John Boorman","Hope and Glory",false],[1988,"Lasse Hallstr\u00f6m","My Life as a Dog",false],[1988,"Norman Jewison","Moonstruck",false],[1988,"Adrian Lyne","Fatal Attraction",false],
+  [1989,"Barry Levinson","Rain Man",true],[1989,"Charles Crichton","A Fish Called Wanda",false],[1989,"Mike Nichols","Working Girl",false],[1989,"Alan Parker","Mississippi Burning",false],[1989,"Martin Scorsese","The Last Temptation of Christ",false],
+  [1990,"Oliver Stone","Born on the Fourth of July",true],[1990,"Woody Allen","Crimes and Misdemeanors",false],[1990,"Kenneth Branagh","Henry V",false],[1990,"Jim Sheridan","My Left Foot",false],[1990,"Peter Weir","Dead Poets Society",false],
+  [1991,"Kevin Costner","Dances With Wolves",true],[1991,"Francis Ford Coppola","The Godfather Part III",false],[1991,"Stephen Frears","The Grifters",false],[1991,"Barbet Schroeder","Reversal of Fortune",false],[1991,"Martin Scorsese","Goodfellas",false],
+  [1992,"Jonathan Demme","The Silence of the Lambs",true],[1992,"Barry Levinson","Bugsy",false],[1992,"Ridley Scott","Thelma & Louise",false],[1992,"John Singleton","Boyz n the Hood",false],[1992,"Oliver Stone","JFK",false],
+  [1993,"Clint Eastwood","Unforgiven",true],[1993,"Robert Altman","The Player",false],[1993,"Martin Brest","Scent of a Woman",false],[1993,"James Ivory","Howards End",false],[1993,"Neil Jordan","The Crying Game",false],
+  [1994,"Steven Spielberg","Schindler's List",true],[1994,"Robert Altman","Short Cuts",false],[1994,"Jane Campion","The Piano",false],[1994,"James Ivory","The Remains of the Day",false],[1994,"Jim Sheridan","In the Name of the Father",false],
+  [1995,"Robert Zemeckis","Forrest Gump",true],[1995,"Woody Allen","Bullets Over Broadway",false],[1995,"Krzysztof Kie\u015blowski","Three Colours: Red",false],[1995,"Robert Redford","Quiz Show",false],[1995,"Quentin Tarantino","Pulp Fiction",false],
+  [1996,"Mel Gibson","Braveheart",true],[1996,"Mike Figgis","Leaving Las Vegas",false],[1996,"Chris Noonan","Babe",false],[1996,"Michael Radford","Il Postino: The Postman",false],[1996,"Tim Robbins","Dead Man Walking",false],
+  [1997,"Anthony Minghella","The English Patient",true],[1997,"Joel Coen","Fargo",false],[1997,"Milo\u0161 Forman","The People vs. Larry Flynt",false],[1997,"Scott Hicks","Shine",false],[1997,"Mike Leigh","Secrets & Lies",false],
+  [1998,"James Cameron","Titanic",true],[1998,"Peter Cattaneo","The Full Monty",false],[1998,"Atom Egoyan","The Sweet Hereafter",false],[1998,"Curtis Hanson","L.A. Confidential",false],[1998,"Gus Van Sant","Good Will Hunting",false],
+  [1999,"Steven Spielberg","Saving Private Ryan",true],[1999,"Roberto Benigni","Life Is Beautiful",false],[1999,"John Madden","Shakespeare in Love",false],[1999,"Terrence Malick","The Thin Red Line",false],[1999,"Peter Weir","The Truman Show",false],
+  [2000,"Sam Mendes","American Beauty",true],[2000,"Lasse Hallstr\u00f6m","The Cider House Rules",false],[2000,"Spike Jonze","Being John Malkovich",false],[2000,"Michael Mann","The Insider",false],[2000,"M. Night Shyamalan","The Sixth Sense",false],
+  [2001,"Steven Soderbergh","Traffic",true],[2001,"Stephen Daldry","Billy Elliot",false],[2001,"Ang Lee","Crouching Tiger, Hidden Dragon",false],[2001,"Ridley Scott","Gladiator",false],[2001,"Steven Soderbergh","Erin Brockovich",false],
+  [2002,"Ron Howard","A Beautiful Mind",true],[2002,"Robert Altman","Gosford Park",false],[2002,"Peter Jackson","The Lord of the Rings: The Fellowship of the Ring",false],[2002,"David Lynch","Mulholland Drive",false],[2002,"Ridley Scott","Black Hawk Down",false],
+  [2003,"Roman Polanski","The Pianist",true],[2003,"Pedro Almod\u00f3var","Talk to Her",false],[2003,"Stephen Daldry","The Hours",false],[2003,"Rob Marshall","Chicago",false],[2003,"Martin Scorsese","Gangs of New York",false],
+  [2004,"Peter Jackson","The Lord of the Rings: The Return of the King",true],[2004,"Sofia Coppola","Lost in Translation",false],[2004,"Clint Eastwood","Mystic River",false],[2004,"Fernando Meirelles","City of God",false],[2004,"Peter Weir","Master and Commander: The Far Side of the World",false],
+  [2005,"Clint Eastwood","Million Dollar Baby",true],[2005,"Taylor Hackford","Ray",false],[2005,"Mike Leigh","Vera Drake",false],[2005,"Alexander Payne","Sideways",false],[2005,"Martin Scorsese","The Aviator",false],
+  [2006,"Ang Lee","Brokeback Mountain",true],[2006,"George Clooney","Good Night, and Good Luck",false],[2006,"Paul Haggis","Crash",false],[2006,"Bennett Miller","Capote",false],[2006,"Steven Spielberg","Munich",false],
+  [2007,"Martin Scorsese","The Departed",true],[2007,"Clint Eastwood","Letters from Iwo Jima",false],[2007,"Stephen Frears","The Queen",false],[2007,"Paul Greengrass","United 93",false],[2007,"Alejandro Gonz\u00e1lez I\u00f1\u00e1rritu","Babel",false],
+  [2008,"Joel Coen and Ethan Coen","No Country for Old Men",true],[2008,"Paul Thomas Anderson","There Will Be Blood",false],[2008,"Tony Gilroy","Michael Clayton",false],[2008,"Jason Reitman","Juno",false],[2008,"Julian Schnabel","The Diving Bell and the Butterfly",false],
+  [2009,"Danny Boyle","Slumdog Millionaire",true],[2009,"Stephen Daldry","The Reader",false],[2009,"David Fincher","The Curious Case of Benjamin Button",false],[2009,"Ron Howard","Frost/Nixon",false],[2009,"Gus Van Sant","Milk",false],
+  [2010,"Kathryn Bigelow","The Hurt Locker",true],[2010,"James Cameron","Avatar",false],[2010,"Lee Daniels","Precious",false],[2010,"Jason Reitman","Up in the Air",false],[2010,"Quentin Tarantino","Inglourious Basterds",false],
+  [2011,"Tom Hooper","The King's Speech",true],[2011,"Darren Aronofsky","Black Swan",false],[2011,"Joel Coen and Ethan Coen","True Grit",false],[2011,"David Fincher","The Social Network",false],[2011,"David O. Russell","The Fighter",false],
+  [2012,"Michel Hazanavicius","The Artist",true],[2012,"Woody Allen","Midnight in Paris",false],[2012,"Terrence Malick","The Tree of Life",false],[2012,"Alexander Payne","The Descendants",false],[2012,"Martin Scorsese","Hugo",false],
+  [2013,"Ang Lee","Life of Pi",true],[2013,"Michael Haneke","Amour",false],[2013,"David O. Russell","Silver Linings Playbook",false],[2013,"Steven Spielberg","Lincoln",false],[2013,"Benh Zeitlin","Beasts of the Southern Wild",false],
+  [2014,"Alfonso Cuar\u00f3n","Gravity",true],[2014,"Steve McQueen","12 Years a Slave",false],[2014,"Alexander Payne","Nebraska",false],[2014,"David O. Russell","American Hustle",false],[2014,"Martin Scorsese","The Wolf of Wall Street",false],
+  [2015,"Alejandro G. I\u00f1\u00e1rritu","Birdman",true],[2015,"Wes Anderson","The Grand Budapest Hotel",false],[2015,"Richard Linklater","Boyhood",false],[2015,"Bennett Miller","Foxcatcher",false],[2015,"Morten Tyldum","The Imitation Game",false],
+  [2016,"Alejandro G. I\u00f1\u00e1rritu","The Revenant",true],[2016,"Lenny Abrahamson","Room",false],[2016,"Tom McCarthy","Spotlight",false],[2016,"Adam McKay","The Big Short",false],[2016,"George Miller","Mad Max: Fury Road",false],
+  [2017,"Damien Chazelle","La La Land",true],[2017,"Mel Gibson","Hacksaw Ridge",false],[2017,"Barry Jenkins","Moonlight",false],[2017,"Kenneth Lonergan","Manchester by the Sea",false],[2017,"Denis Villeneuve","Arrival",false],
+  [2018,"Guillermo del Toro","The Shape of Water",true],[2018,"Paul Thomas Anderson","Phantom Thread",false],[2018,"Greta Gerwig","Lady Bird",false],[2018,"Christopher Nolan","Dunkirk",false],[2018,"Jordan Peele","Get Out",false],
+  [2019,"Alfonso Cuar\u00f3n","Roma",true],[2019,"Yorgos Lanthimos","The Favourite",false],[2019,"Spike Lee","BlacKkKlansman",false],[2019,"Adam McKay","Vice",false],[2019,"Pawe\u0142 Pawlikowski","Cold War",false],
+  [2020,"Bong Joon-ho","Parasite",true],[2020,"Sam Mendes","1917",false],[2020,"Todd Phillips","Joker",false],[2020,"Martin Scorsese","The Irishman",false],[2020,"Quentin Tarantino","Once Upon a Time in Hollywood",false],
+  [2021,"Chlo\u00e9 Zhao","Nomadland",true],[2021,"Lee Isaac Chung","Minari",false],[2021,"Emerald Fennell","Promising Young Woman",false],[2021,"David Fincher","Mank",false],[2021,"Thomas Vinterberg","Another Round",false],
+  [2022,"Jane Campion","The Power of the Dog",true],[2022,"Paul Thomas Anderson","Licorice Pizza",false],[2022,"Kenneth Branagh","Belfast",false],[2022,"Ryusuke Hamaguchi","Drive My Car",false],[2022,"Steven Spielberg","West Side Story",false],
+  [2023,"Daniel Kwan and Daniel Scheinert","Everything Everywhere All at Once",true],[2023,"Todd Field","T\u00e1r",false],[2023,"Martin McDonagh","The Banshees of Inisherin",false],[2023,"Ruben \u00d6stlund","Triangle of Sadness",false],[2023,"Steven Spielberg","The Fabelmans",false],
+  [2024,"Christopher Nolan","Oppenheimer",true],[2024,"Jonathan Glazer","The Zone of Interest",false],[2024,"Yorgos Lanthimos","Poor Things",false],[2024,"Martin Scorsese","Killers of the Flower Moon",false],[2024,"Justine Triet","Anatomy of a Fall",false],
+  [2025,"Sean Baker","Anora",true],[2025,"Jacques Audiard","Emilia P\u00e9rez",false],[2025,"Brady Corbet","The Brutalist",false],[2025,"Coralie Fargeat","The Substance",false],[2025,"James Mangold","A Complete Unknown",false]
+];
+dirRaw.forEach(([ry,p,f,w]) => {
+  const y = ry - 1;
+  if (y >= 1970 && y <= 2024) ALL.push({year:y, film:f, category:"Best Director", person:p, winner:w, streaming:getStreaming(f)});
+});
+
+// --- Best Actor (ceremony year, subtract 1) ---
+const actorRaw = [
+  [1971,"George C. Scott","Patton",true],[1971,"Melvyn Douglas","I Never Sang for My Father",false],[1971,"James Earl Jones","The Great White Hope",false],[1971,"Jack Nicholson","Five Easy Pieces",false],[1971,"Ryan O'Neal","Love Story",false],
+  [1972,"Gene Hackman","The French Connection",true],[1972,"Peter Finch","Sunday Bloody Sunday",false],[1972,"Walter Matthau","Kotch",false],[1972,"George C. Scott","The Hospital",false],[1972,"Topol","Fiddler on the Roof",false],
+  [1973,"Marlon Brando","The Godfather",true],[1973,"Michael Caine","Sleuth",false],[1973,"Laurence Olivier","Sleuth",false],[1973,"Peter O'Toole","The Ruling Class",false],[1973,"Paul Winfield","Sounder",false],
+  [1974,"Jack Lemmon","Save the Tiger",true],[1974,"Marlon Brando","Last Tango in Paris",false],[1974,"Jack Nicholson","The Last Detail",false],[1974,"Al Pacino","Serpico",false],[1974,"Robert Redford","The Sting",false],
+  [1975,"Art Carney","Harry and Tonto",true],[1975,"Albert Finney","Murder on the Orient Express",false],[1975,"Dustin Hoffman","Lenny",false],[1975,"Jack Nicholson","Chinatown",false],[1975,"Al Pacino","The Godfather Part II",false],
+  [1976,"Jack Nicholson","One Flew Over the Cuckoo's Nest",true],[1976,"Walter Matthau","The Sunshine Boys",false],[1976,"Al Pacino","Dog Day Afternoon",false],[1976,"Maximilian Schell","The Man in the Glass Booth",false],[1976,"James Whitmore","Give 'em Hell, Harry!",false],
+  [1977,"Peter Finch","Network",true],[1977,"Robert De Niro","Taxi Driver",false],[1977,"Giancarlo Giannini","Seven Beauties",false],[1977,"William Holden","Network",false],[1977,"Sylvester Stallone","Rocky",false],
+  [1978,"Richard Dreyfuss","The Goodbye Girl",true],[1978,"Woody Allen","Annie Hall",false],[1978,"Richard Burton","Equus",false],[1978,"Marcello Mastroianni","A Special Day",false],[1978,"John Travolta","Saturday Night Fever",false],
+  [1979,"Jon Voight","Coming Home",true],[1979,"Warren Beatty","Heaven Can Wait",false],[1979,"Gary Busey","The Buddy Holly Story",false],[1979,"Robert De Niro","The Deer Hunter",false],[1979,"Laurence Olivier","The Boys from Brazil",false],
+  [1980,"Dustin Hoffman","Kramer vs. Kramer",true],[1980,"Jack Lemmon","The China Syndrome",false],[1980,"Al Pacino","...And Justice for All",false],[1980,"Roy Scheider","All That Jazz",false],[1980,"Peter Sellers","Being There",false],
+  [1981,"Robert De Niro","Raging Bull",true],[1981,"Robert Duvall","The Great Santini",false],[1981,"John Hurt","The Elephant Man",false],[1981,"Jack Lemmon","Tribute",false],[1981,"Peter O'Toole","The Stunt Man",false],
+  [1982,"Henry Fonda","On Golden Pond",true],[1982,"Warren Beatty","Reds",false],[1982,"Burt Lancaster","Atlantic City",false],[1982,"Dudley Moore","Arthur",false],[1982,"Paul Newman","Absence of Malice",false],
+  [1983,"Ben Kingsley","Gandhi",true],[1983,"Dustin Hoffman","Tootsie",false],[1983,"Jack Lemmon","Missing",false],[1983,"Paul Newman","The Verdict",false],[1983,"Peter O'Toole","My Favorite Year",false],
+  [1984,"Robert Duvall","Tender Mercies",true],[1984,"Michael Caine","Educating Rita",false],[1984,"Tom Conti","Reuben, Reuben",false],[1984,"Tom Courtenay","The Dresser",false],[1984,"Albert Finney","The Dresser",false],
+  [1985,"F. Murray Abraham","Amadeus",true],[1985,"Jeff Bridges","Starman",false],[1985,"Albert Finney","Under the Volcano",false],[1985,"Tom Hulce","Amadeus",false],[1985,"Sam Waterston","The Killing Fields",false],
+  [1986,"William Hurt","Kiss of the Spider Woman",true],[1986,"Harrison Ford","Witness",false],[1986,"James Garner","Murphy's Romance",false],[1986,"Jack Nicholson","Prizzi's Honor",false],[1986,"Jon Voight","Runaway Train",false],
+  [1987,"Paul Newman","The Color of Money",true],[1987,"Dexter Gordon","Round Midnight",false],[1987,"Bob Hoskins","Mona Lisa",false],[1987,"William Hurt","Children of a Lesser God",false],[1987,"James Woods","Salvador",false],
+  [1988,"Michael Douglas","Wall Street",true],[1988,"William Hurt","Broadcast News",false],[1988,"Marcello Mastroianni","Dark Eyes",false],[1988,"Jack Nicholson","Ironweed",false],[1988,"Robin Williams","Good Morning, Vietnam",false],
+  [1989,"Dustin Hoffman","Rain Man",true],[1989,"Gene Hackman","Mississippi Burning",false],[1989,"Tom Hanks","Big",false],[1989,"Edward James Olmos","Stand and Deliver",false],[1989,"Max von Sydow","Pelle the Conqueror",false],
+  [1990,"Daniel Day-Lewis","My Left Foot",true],[1990,"Kenneth Branagh","Henry V",false],[1990,"Tom Cruise","Born on the Fourth of July",false],[1990,"Morgan Freeman","Driving Miss Daisy",false],[1990,"Robin Williams","Dead Poets Society",false],
+  [1991,"Jeremy Irons","Reversal of Fortune",true],[1991,"Kevin Costner","Dances With Wolves",false],[1991,"Robert De Niro","Awakenings",false],[1991,"G\u00e9rard Depardieu","Cyrano de Bergerac",false],[1991,"Richard Harris","The Field",false],
+  [1992,"Anthony Hopkins","The Silence of the Lambs",true],[1992,"Warren Beatty","Bugsy",false],[1992,"Robert De Niro","Cape Fear",false],[1992,"Nick Nolte","The Prince of Tides",false],[1992,"Robin Williams","The Fisher King",false],
+  [1993,"Al Pacino","Scent of a Woman",true],[1993,"Robert Downey Jr.","Chaplin",false],[1993,"Clint Eastwood","Unforgiven",false],[1993,"Stephen Rea","The Crying Game",false],[1993,"Denzel Washington","Malcolm X",false],
+  [1994,"Tom Hanks","Philadelphia",true],[1994,"Daniel Day-Lewis","In the Name of the Father",false],[1994,"Laurence Fishburne","What's Love Got to Do with It",false],[1994,"Anthony Hopkins","The Remains of the Day",false],[1994,"Liam Neeson","Schindler's List",false],
+  [1995,"Tom Hanks","Forrest Gump",true],[1995,"Morgan Freeman","The Shawshank Redemption",false],[1995,"Nigel Hawthorne","The Madness of King George",false],[1995,"Paul Newman","Nobody's Fool",false],[1995,"John Travolta","Pulp Fiction",false],
+  [1996,"Nicolas Cage","Leaving Las Vegas",true],[1996,"Richard Dreyfuss","Mr. Holland's Opus",false],[1996,"Anthony Hopkins","Nixon",false],[1996,"Sean Penn","Dead Man Walking",false],[1996,"Massimo Troisi","Il Postino: The Postman",false],
+  [1997,"Geoffrey Rush","Shine",true],[1997,"Tom Cruise","Jerry Maguire",false],[1997,"Ralph Fiennes","The English Patient",false],[1997,"Woody Harrelson","The People vs. Larry Flynt",false],[1997,"Billy Bob Thornton","Sling Blade",false],
+  [1998,"Jack Nicholson","As Good as It Gets",true],[1998,"Matt Damon","Good Will Hunting",false],[1998,"Robert Duvall","The Apostle",false],[1998,"Peter Fonda","Ulee's Gold",false],[1998,"Dustin Hoffman","Wag the Dog",false],
+  [1999,"Roberto Benigni","Life Is Beautiful",true],[1999,"Tom Hanks","Saving Private Ryan",false],[1999,"Ian McKellen","Gods and Monsters",false],[1999,"Nick Nolte","Affliction",false],[1999,"Edward Norton","American History X",false],
+  [2000,"Kevin Spacey","American Beauty",true],[2000,"Russell Crowe","The Insider",false],[2000,"Richard Farnsworth","The Straight Story",false],[2000,"Sean Penn","Sweet and Lowdown",false],[2000,"Denzel Washington","The Hurricane",false],
+  [2001,"Russell Crowe","Gladiator",true],[2001,"Javier Bardem","Before Night Falls",false],[2001,"Tom Hanks","Cast Away",false],[2001,"Ed Harris","Pollock",false],[2001,"Geoffrey Rush","Quills",false],
+  [2002,"Denzel Washington","Training Day",true],[2002,"Russell Crowe","A Beautiful Mind",false],[2002,"Sean Penn","I Am Sam",false],[2002,"Will Smith","Ali",false],[2002,"Tom Wilkinson","In the Bedroom",false],
+  [2003,"Adrien Brody","The Pianist",true],[2003,"Nicolas Cage","Adaptation.",false],[2003,"Michael Caine","The Quiet American",false],[2003,"Daniel Day-Lewis","Gangs of New York",false],[2003,"Jack Nicholson","About Schmidt",false],
+  [2004,"Sean Penn","Mystic River",true],[2004,"Johnny Depp","Pirates of the Caribbean: The Curse of the Black Pearl",false],[2004,"Ben Kingsley","House of Sand and Fog",false],[2004,"Jude Law","Cold Mountain",false],[2004,"Bill Murray","Lost in Translation",false],
+  [2005,"Jamie Foxx","Ray",true],[2005,"Don Cheadle","Hotel Rwanda",false],[2005,"Johnny Depp","Finding Neverland",false],[2005,"Leonardo DiCaprio","The Aviator",false],[2005,"Clint Eastwood","Million Dollar Baby",false],
+  [2006,"Philip Seymour Hoffman","Capote",true],[2006,"Terrence Howard","Hustle & Flow",false],[2006,"Heath Ledger","Brokeback Mountain",false],[2006,"Joaquin Phoenix","Walk the Line",false],[2006,"David Strathairn","Good Night, and Good Luck",false],
+  [2007,"Forest Whitaker","The Last King of Scotland",true],[2007,"Leonardo DiCaprio","Blood Diamond",false],[2007,"Ryan Gosling","Half Nelson",false],[2007,"Peter O'Toole","Venus",false],[2007,"Will Smith","The Pursuit of Happyness",false],
+  [2008,"Daniel Day-Lewis","There Will Be Blood",true],[2008,"George Clooney","Michael Clayton",false],[2008,"Johnny Depp","Sweeney Todd: The Demon Barber of Fleet Street",false],[2008,"Tommy Lee Jones","In the Valley of Elah",false],[2008,"Viggo Mortensen","Eastern Promises",false],
+  [2009,"Sean Penn","Milk",true],[2009,"Richard Jenkins","The Visitor",false],[2009,"Frank Langella","Frost/Nixon",false],[2009,"Brad Pitt","The Curious Case of Benjamin Button",false],[2009,"Mickey Rourke","The Wrestler",false],
+  [2010,"Jeff Bridges","Crazy Heart",true],[2010,"George Clooney","Up in the Air",false],[2010,"Colin Firth","A Single Man",false],[2010,"Morgan Freeman","Invictus",false],[2010,"Jeremy Renner","The Hurt Locker",false],
+  [2011,"Colin Firth","The King's Speech",true],[2011,"Javier Bardem","Biutiful",false],[2011,"Jeff Bridges","True Grit",false],[2011,"Jesse Eisenberg","The Social Network",false],[2011,"James Franco","127 Hours",false],
+  [2012,"Jean Dujardin","The Artist",true],[2012,"Demian Bichir","A Better Life",false],[2012,"George Clooney","The Descendants",false],[2012,"Gary Oldman","Tinker Tailor Soldier Spy",false],[2012,"Brad Pitt","Moneyball",false],
+  [2013,"Daniel Day-Lewis","Lincoln",true],[2013,"Bradley Cooper","Silver Linings Playbook",false],[2013,"Hugh Jackman","Les Mis\u00e9rables",false],[2013,"Joaquin Phoenix","The Master",false],[2013,"Denzel Washington","Flight",false],
+  [2014,"Matthew McConaughey","Dallas Buyers Club",true],[2014,"Christian Bale","American Hustle",false],[2014,"Bruce Dern","Nebraska",false],[2014,"Leonardo DiCaprio","The Wolf of Wall Street",false],[2014,"Chiwetel Ejiofor","12 Years a Slave",false],
+  [2015,"Eddie Redmayne","The Theory of Everything",true],[2015,"Steve Carell","Foxcatcher",false],[2015,"Bradley Cooper","American Sniper",false],[2015,"Benedict Cumberbatch","The Imitation Game",false],[2015,"Michael Keaton","Birdman",false],
+  [2016,"Leonardo DiCaprio","The Revenant",true],[2016,"Bryan Cranston","Trumbo",false],[2016,"Matt Damon","The Martian",false],[2016,"Michael Fassbender","Steve Jobs",false],[2016,"Eddie Redmayne","The Danish Girl",false],
+  [2017,"Casey Affleck","Manchester by the Sea",true],[2017,"Andrew Garfield","Hacksaw Ridge",false],[2017,"Ryan Gosling","La La Land",false],[2017,"Viggo Mortensen","Captain Fantastic",false],[2017,"Denzel Washington","Fences",false],
+  [2018,"Gary Oldman","Darkest Hour",true],[2018,"Timoth\u00e9e Chalamet","Call Me by Your Name",false],[2018,"Daniel Day-Lewis","Phantom Thread",false],[2018,"Daniel Kaluuya","Get Out",false],[2018,"Denzel Washington","Roman J. Israel, Esq.",false],
+  [2019,"Rami Malek","Bohemian Rhapsody",true],[2019,"Christian Bale","Vice",false],[2019,"Bradley Cooper","A Star Is Born",false],[2019,"Willem Dafoe","At Eternity's Gate",false],[2019,"Viggo Mortensen","Green Book",false],
+  [2020,"Joaquin Phoenix","Joker",true],[2020,"Antonio Banderas","Pain and Glory",false],[2020,"Leonardo DiCaprio","Once Upon a Time in Hollywood",false],[2020,"Adam Driver","Marriage Story",false],[2020,"Jonathan Pryce","The Two Popes",false],
+  [2021,"Anthony Hopkins","The Father",true],[2021,"Riz Ahmed","Sound of Metal",false],[2021,"Chadwick Boseman","Ma Rainey's Black Bottom",false],[2021,"Gary Oldman","Mank",false],[2021,"Steven Yeun","Minari",false],
+  [2022,"Will Smith","King Richard",true],[2022,"Javier Bardem","Being the Ricardos",false],[2022,"Benedict Cumberbatch","The Power of the Dog",false],[2022,"Andrew Garfield","Tick, Tick... Boom!",false],[2022,"Denzel Washington","The Tragedy of Macbeth",false],
+  [2023,"Brendan Fraser","The Whale",true],[2023,"Austin Butler","Elvis",false],[2023,"Colin Farrell","The Banshees of Inisherin",false],[2023,"Paul Mescal","Aftersun",false],[2023,"Bill Nighy","Living",false],
+  [2024,"Cillian Murphy","Oppenheimer",true],[2024,"Bradley Cooper","Maestro",false],[2024,"Colman Domingo","Rustin",false],[2024,"Paul Giamatti","The Holdovers",false],[2024,"Jeffrey Wright","American Fiction",false],
+  [2025,"Adrien Brody","The Brutalist",true],[2025,"Timoth\u00e9e Chalamet","A Complete Unknown",false],[2025,"Colman Domingo","Sing Sing",false],[2025,"Ralph Fiennes","Conclave",false],[2025,"Sebastian Stan","The Apprentice",false]
+];
+actorRaw.forEach(([ry,p,f,w]) => {
+  const y = ry - 1;
+  if (y >= 1970 && y <= 2024) ALL.push({year:y, film:f, category:"Best Actor", person:p, winner:w, streaming:getStreaming(f)});
+});
+
+// --- Best Actress (year = film year already) ---
+const actressRaw = [
+  [1970,"Glenda Jackson","Women in Love",true],[1970,"Jane Alexander","The Great White Hope",false],[1970,"Ali MacGraw","Love Story",false],[1970,"Sarah Miles","Ryan's Daughter",false],[1970,"Carrie Snodgress","Diary of a Mad Housewife",false],
+  [1971,"Jane Fonda","Klute",true],[1971,"Julie Christie","McCabe & Mrs. Miller",false],[1971,"Glenda Jackson","Sunday Bloody Sunday",false],[1971,"Vanessa Redgrave","Mary, Queen of Scots",false],[1971,"Janet Suzman","Nicholas and Alexandra",false],
+  [1972,"Liza Minnelli","Cabaret",true],[1972,"Diana Ross","Lady Sings the Blues",false],[1972,"Maggie Smith","Travels with My Aunt",false],[1972,"Cicely Tyson","Sounder",false],[1972,"Liv Ullmann","The Emigrants",false],
+  [1973,"Glenda Jackson","A Touch of Class",true],[1973,"Ellen Burstyn","The Exorcist",false],[1973,"Marsha Mason","Cinderella Liberty",false],[1973,"Barbra Streisand","The Way We Were",false],[1973,"Joanne Woodward","Summer Wishes, Winter Dreams",false],
+  [1974,"Ellen Burstyn","Alice Doesn't Live Here Anymore",true],[1974,"Diahann Carroll","Claudine",false],[1974,"Faye Dunaway","Chinatown",false],[1974,"Valerie Perrine","Lenny",false],[1974,"Gena Rowlands","A Woman Under the Influence",false],
+  [1975,"Louise Fletcher","One Flew Over the Cuckoo's Nest",true],[1975,"Isabelle Adjani","The Story of Adele H.",false],[1975,"Ann-Margret","Tommy",false],[1975,"Glenda Jackson","Hedda",false],[1975,"Carol Kane","Hester Street",false],
+  [1976,"Faye Dunaway","Network",true],[1976,"Marie-Christine Barrault","Cousin Cousine",false],[1976,"Talia Shire","Rocky",false],[1976,"Sissy Spacek","Carrie",false],[1976,"Liv Ullmann","Face to Face",false],
+  [1977,"Diane Keaton","Annie Hall",true],[1977,"Anne Bancroft","The Turning Point",false],[1977,"Jane Fonda","Julia",false],[1977,"Shirley MacLaine","The Turning Point",false],[1977,"Marsha Mason","The Goodbye Girl",false],
+  [1978,"Jane Fonda","Coming Home",true],[1978,"Ingrid Bergman","Autumn Sonata",false],[1978,"Ellen Burstyn","Same Time, Next Year",false],[1978,"Jill Clayburgh","An Unmarried Woman",false],[1978,"Geraldine Page","Interiors",false],
+  [1979,"Sally Field","Norma Rae",true],[1979,"Jill Clayburgh","Starting Over",false],[1979,"Jane Fonda","The China Syndrome",false],[1979,"Marsha Mason","Chapter Two",false],[1979,"Bette Midler","The Rose",false],
+  [1980,"Sissy Spacek","Coal Miner's Daughter",true],[1980,"Ellen Burstyn","Resurrection",false],[1980,"Goldie Hawn","Private Benjamin",false],[1980,"Mary Tyler Moore","Ordinary People",false],[1980,"Gena Rowlands","Gloria",false],
+  [1981,"Katharine Hepburn","On Golden Pond",true],[1981,"Diane Keaton","Reds",false],[1981,"Marsha Mason","Only When I Laugh",false],[1981,"Susan Sarandon","Atlantic City",false],[1981,"Meryl Streep","The French Lieutenant's Woman",false],
+  [1982,"Meryl Streep","Sophie's Choice",true],[1982,"Julie Andrews","Victor/Victoria",false],[1982,"Jessica Lange","Frances",false],[1982,"Sissy Spacek","Missing",false],[1982,"Debra Winger","An Officer and a Gentleman",false],
+  [1983,"Shirley MacLaine","Terms of Endearment",true],[1983,"Jane Alexander","Testament",false],[1983,"Meryl Streep","Silkwood",false],[1983,"Julie Walters","Educating Rita",false],[1983,"Debra Winger","Terms of Endearment",false],
+  [1984,"Sally Field","Places in the Heart",true],[1984,"Judy Davis","A Passage to India",false],[1984,"Jessica Lange","Country",false],[1984,"Vanessa Redgrave","The Bostonians",false],[1984,"Sissy Spacek","The River",false],
+  [1985,"Geraldine Page","The Trip to Bountiful",true],[1985,"Anne Bancroft","Agnes of God",false],[1985,"Whoopi Goldberg","The Color Purple",false],[1985,"Jessica Lange","Sweet Dreams",false],[1985,"Meryl Streep","Out of Africa",false],
+  [1986,"Marlee Matlin","Children of a Lesser God",true],[1986,"Jane Fonda","The Morning After",false],[1986,"Sissy Spacek","Crimes of the Heart",false],[1986,"Kathleen Turner","Peggy Sue Got Married",false],[1986,"Sigourney Weaver","Aliens",false],
+  [1987,"Cher","Moonstruck",true],[1987,"Glenn Close","Fatal Attraction",false],[1987,"Holly Hunter","Broadcast News",false],[1987,"Sally Kirkland","Anna",false],[1987,"Meryl Streep","Ironweed",false],
+  [1988,"Jodie Foster","The Accused",true],[1988,"Glenn Close","Dangerous Liaisons",false],[1988,"Melanie Griffith","Working Girl",false],[1988,"Meryl Streep","A Cry in the Dark",false],[1988,"Sigourney Weaver","Gorillas in the Mist",false],
+  [1989,"Jessica Tandy","Driving Miss Daisy",true],[1989,"Isabelle Adjani","Camille Claudel",false],[1989,"Pauline Collins","Shirley Valentine",false],[1989,"Jessica Lange","Music Box",false],[1989,"Michelle Pfeiffer","The Fabulous Baker Boys",false],
+  [1990,"Kathy Bates","Misery",true],[1990,"Anjelica Huston","The Grifters",false],[1990,"Julia Roberts","Pretty Woman",false],[1990,"Meryl Streep","Postcards from the Edge",false],[1990,"Joanne Woodward","Mr. & Mrs. Bridge",false],
+  [1991,"Jodie Foster","The Silence of the Lambs",true],[1991,"Geena Davis","Thelma & Louise",false],[1991,"Laura Dern","Rambling Rose",false],[1991,"Bette Midler","For the Boys",false],[1991,"Susan Sarandon","Thelma & Louise",false],
+  [1992,"Emma Thompson","Howards End",true],[1992,"Catherine Deneuve","Indochine",false],[1992,"Mary McDonnell","Passion Fish",false],[1992,"Michelle Pfeiffer","Love Field",false],[1992,"Susan Sarandon","Lorenzo's Oil",false],
+  [1993,"Holly Hunter","The Piano",true],[1993,"Angela Bassett","What's Love Got to Do with It",false],[1993,"Stockard Channing","Six Degrees of Separation",false],[1993,"Emma Thompson","The Remains of the Day",false],[1993,"Debra Winger","Shadowlands",false],
+  [1994,"Jessica Lange","Blue Sky",true],[1994,"Jodie Foster","Nell",false],[1994,"Miranda Richardson","Tom & Viv",false],[1994,"Winona Ryder","Little Women",false],[1994,"Susan Sarandon","The Client",false],
+  [1995,"Susan Sarandon","Dead Man Walking",true],[1995,"Elisabeth Shue","Leaving Las Vegas",false],[1995,"Sharon Stone","Casino",false],[1995,"Meryl Streep","The Bridges of Madison County",false],[1995,"Emma Thompson","Sense and Sensibility",false],
+  [1996,"Frances McDormand","Fargo",true],[1996,"Brenda Blethyn","Secrets & Lies",false],[1996,"Diane Keaton","Marvin's Room",false],[1996,"Kristin Scott Thomas","The English Patient",false],[1996,"Emily Watson","Breaking the Waves",false],
+  [1997,"Helen Hunt","As Good as It Gets",true],[1997,"Helena Bonham Carter","The Wings of the Dove",false],[1997,"Julie Christie","Afterglow",false],[1997,"Judi Dench","Mrs Brown",false],[1997,"Kate Winslet","Titanic",false],
+  [1998,"Gwyneth Paltrow","Shakespeare in Love",true],[1998,"Cate Blanchett","Elizabeth",false],[1998,"Fernanda Montenegro","Central Station",false],[1998,"Meryl Streep","One True Thing",false],[1998,"Emily Watson","Hilary and Jackie",false],
+  [1999,"Hilary Swank","Boys Don't Cry",true],[1999,"Annette Bening","American Beauty",false],[1999,"Janet McTeer","Tumbleweeds",false],[1999,"Julianne Moore","The End of the Affair",false],[1999,"Meryl Streep","Music of the Heart",false],
+  [2000,"Julia Roberts","Erin Brockovich",true],[2000,"Joan Allen","The Contender",false],[2000,"Juliette Binoche","Chocolat",false],[2000,"Ellen Burstyn","Requiem for a Dream",false],[2000,"Laura Linney","You Can Count on Me",false],
+  [2001,"Halle Berry","Monster's Ball",true],[2001,"Judi Dench","Iris",false],[2001,"Nicole Kidman","Moulin Rouge!",false],[2001,"Sissy Spacek","In the Bedroom",false],[2001,"Ren\u00e9e Zellweger","Bridget Jones's Diary",false],
+  [2002,"Nicole Kidman","The Hours",true],[2002,"Salma Hayek","Frida",false],[2002,"Diane Lane","Unfaithful",false],[2002,"Julianne Moore","Far from Heaven",false],[2002,"Ren\u00e9e Zellweger","Chicago",false],
+  [2003,"Charlize Theron","Monster",true],[2003,"Keisha Castle-Hughes","Whale Rider",false],[2003,"Diane Keaton","Something's Gotta Give",false],[2003,"Samantha Morton","In America",false],[2003,"Naomi Watts","21 Grams",false],
+  [2004,"Hilary Swank","Million Dollar Baby",true],[2004,"Annette Bening","Being Julia",false],[2004,"Catalina Sandino Moreno","Maria Full of Grace",false],[2004,"Imelda Staunton","Vera Drake",false],[2004,"Kate Winslet","Eternal Sunshine of the Spotless Mind",false],
+  [2005,"Reese Witherspoon","Walk the Line",true],[2005,"Judi Dench","Mrs Henderson Presents",false],[2005,"Felicity Huffman","Transamerica",false],[2005,"Keira Knightley","Pride & Prejudice",false],[2005,"Charlize Theron","North Country",false],
+  [2006,"Helen Mirren","The Queen",true],[2006,"Pen\u00e9lope Cruz","Volver",false],[2006,"Judi Dench","Notes on a Scandal",false],[2006,"Meryl Streep","The Devil Wears Prada",false],[2006,"Kate Winslet","Little Children",false],
+  [2007,"Marion Cotillard","La Vie en Rose",true],[2007,"Cate Blanchett","Elizabeth: The Golden Age",false],[2007,"Julie Christie","Away from Her",false],[2007,"Laura Linney","The Savages",false],[2007,"Elliot Page","Juno",false],
+  [2008,"Kate Winslet","The Reader",true],[2008,"Anne Hathaway","Rachel Getting Married",false],[2008,"Angelina Jolie","Changeling",false],[2008,"Melissa Leo","Frozen River",false],[2008,"Meryl Streep","Doubt",false],
+  [2009,"Sandra Bullock","The Blind Side",true],[2009,"Helen Mirren","The Last Station",false],[2009,"Carey Mulligan","An Education",false],[2009,"Gabourey Sidibe","Precious",false],[2009,"Meryl Streep","Julie & Julia",false],
+  [2010,"Natalie Portman","Black Swan",true],[2010,"Annette Bening","The Kids Are All Right",false],[2010,"Nicole Kidman","Rabbit Hole",false],[2010,"Jennifer Lawrence","Winter's Bone",false],[2010,"Michelle Williams","Blue Valentine",false],
+  [2011,"Meryl Streep","The Iron Lady",true],[2011,"Glenn Close","Albert Nobbs",false],[2011,"Viola Davis","The Help",false],[2011,"Rooney Mara","The Girl with the Dragon Tattoo",false],[2011,"Michelle Williams","My Week with Marilyn",false],
+  [2012,"Jennifer Lawrence","Silver Linings Playbook",true],[2012,"Jessica Chastain","Zero Dark Thirty",false],[2012,"Emmanuelle Riva","Amour",false],[2012,"Quvenzhané Wallis","Beasts of the Southern Wild",false],[2012,"Naomi Watts","The Impossible",false],
+  [2013,"Cate Blanchett","Blue Jasmine",true],[2013,"Amy Adams","American Hustle",false],[2013,"Sandra Bullock","Gravity",false],[2013,"Judi Dench","Philomena",false],[2013,"Meryl Streep","August: Osage County",false],
+  [2014,"Julianne Moore","Still Alice",true],[2014,"Marion Cotillard","Two Days, One Night",false],[2014,"Felicity Jones","The Theory of Everything",false],[2014,"Rosamund Pike","Gone Girl",false],[2014,"Reese Witherspoon","Wild",false],
+  [2015,"Brie Larson","Room",true],[2015,"Cate Blanchett","Carol",false],[2015,"Jennifer Lawrence","Joy",false],[2015,"Charlotte Rampling","45 Years",false],[2015,"Saoirse Ronan","Brooklyn",false],
+  [2016,"Emma Stone","La La Land",true],[2016,"Isabelle Huppert","Elle",false],[2016,"Ruth Negga","Loving",false],[2016,"Natalie Portman","Jackie",false],[2016,"Meryl Streep","Florence Foster Jenkins",false],
+  [2017,"Frances McDormand","Three Billboards Outside Ebbing, Missouri",true],[2017,"Sally Hawkins","The Shape of Water",false],[2017,"Margot Robbie","I, Tonya",false],[2017,"Saoirse Ronan","Lady Bird",false],[2017,"Meryl Streep","The Post",false],
+  [2018,"Olivia Colman","The Favourite",true],[2018,"Yalitza Aparicio","Roma",false],[2018,"Glenn Close","The Wife",false],[2018,"Lady Gaga","A Star Is Born",false],[2018,"Melissa McCarthy","Can You Ever Forgive Me?",false],
+  [2019,"Ren\u00e9e Zellweger","Judy",true],[2019,"Cynthia Erivo","Harriet",false],[2019,"Scarlett Johansson","Marriage Story",false],[2019,"Saoirse Ronan","Little Women",false],[2019,"Charlize Theron","Bombshell",false],
+  [2020,"Frances McDormand","Nomadland",true],[2020,"Viola Davis","Ma Rainey's Black Bottom",false],[2020,"Andra Day","The United States vs. Billie Holiday",false],[2020,"Vanessa Kirby","Pieces of a Woman",false],[2020,"Carey Mulligan","Promising Young Woman",false],
+  [2021,"Jessica Chastain","The Eyes of Tammy Faye",true],[2021,"Olivia Colman","The Lost Daughter",false],[2021,"Pen\u00e9lope Cruz","Parallel Mothers",false],[2021,"Nicole Kidman","Being the Ricardos",false],[2021,"Kristen Stewart","Spencer",false],
+  [2022,"Michelle Yeoh","Everything Everywhere All at Once",true],[2022,"Cate Blanchett","T\u00e1r",false],[2022,"Ana de Armas","Blonde",false],[2022,"Andrea Riseborough","To Leslie",false],[2022,"Michelle Williams","The Fabelmans",false],
+  [2023,"Emma Stone","Poor Things",true],[2023,"Annette Bening","Nyad",false],[2023,"Lily Gladstone","Killers of the Flower Moon",false],[2023,"Sandra H\u00fcller","Anatomy of a Fall",false],[2023,"Carey Mulligan","Maestro",false],
+  [2024,"Mikey Madison","Anora",true],[2024,"Cynthia Erivo","Wicked",false],[2024,"Karla Sof\u00eda Gasc\u00f3n","Emilia P\u00e9rez",false],[2024,"Demi Moore","The Substance",false],[2024,"Fernanda Torres","I'm Still Here",false]
+];
+actressRaw.forEach(([y,p,f,w]) => {
+  if (y >= 1970 && y <= 2024) ALL.push({year:y, film:f, category:"Best Actress", person:p, winner:w, streaming:getStreaming(f)});
+});
+
+
+// --- Best Adapted Screenplay (film year) ---
+const adaptedRaw = [
+  [1970,"Ring Lardner Jr.","M*A*S*H",true],
+  [1970,"George Seaton","Airport",false],
+  [1970,"","I Never Sang for My Father",false],
+  [1970,"Joseph Bologna, David Zelag Goodman & Renée Taylor","Lovers and Other Strangers",false],
+  [1970,"Larry Kramer","Women in Love",false],
+  [1971,"Ernest Tidyman","The French Connection",true],
+  [1971,"Stanley Kubrick","A Clockwork Orange",false],
+  [1971,"Bernardo Bertolucci","The Conformist",false],
+  [1971,"Vittorio Bonicelli & Ugo Pirro","The Garden of the Finzi-Continis",false],
+  [1971,"Peter Bogdanovich & Larry McMurtry","The Last Picture Show",false],
+  [1972,"Francis Ford Coppola & Mario Puzo","The Godfather",true],
+  [1972,"Jay Presson Allen","Cabaret",false],
+  [1972,"Bengt Forslund & Jan Troell","The Emigrants",false],
+  [1972,"Julius J. Epstein","Pete 'n' Tillie",false],
+  [1972,"Lonne Elder III","Sounder",false],
+  [1973,"William Peter Blatty","The Exorcist",true],
+  [1973,"Robert Towne","The Last Detail",false],
+  [1973,"James Bridges","The Paper Chase",false],
+  [1973,"Alvin Sargent","Paper Moon",false],
+  [1973,"Waldo Salt & Norman Wexler","Serpico",false],
+  [1974,"Francis Ford Coppola & Mario Puzo","The Godfather Part II",true],
+  [1974,"","The Apprenticeship of Duddy Kravitz",false],
+  [1974,"Julian Barry","Lenny",false],
+  [1974,"Paul Dehn","Murder on the Orient Express",false],
+  [1974,"Mel Brooks & Gene Wilder","Young Frankenstein",false],
+  [1975,"Bo Goldman & Lawrence Hauben","One Flew Over the Cuckoo's Nest",true],
+  [1975,"Stanley Kubrick","Barry Lyndon",false],
+  [1975,"Gladys Hill & John Huston","The Man Who Would Be King",false],
+  [1975,"Ruggero Maccari & Dino Risi","Profumo di donna",false],
+  [1975,"Neil Simon","The Sunshine Boys",false],
+  [1976,"William Goldman","All the President's Men",true],
+  [1976,"Robert Getchell","Bound for Glory",false],
+  [1976,"Federico Fellini & Bernardino Zapponi","Fellini's Casanova",false],
+  [1976,"Nicholas Meyer","The Seven-Per-Cent Solution",false],
+  [1976,"David Butler & Steve Shagan","Voyage of the Damned",false],
+  [1977,"Alvin Sargent","Julia",true],
+  [1977,"Peter Shaffer","Equus",false],
+  [1977,"Lewis John Carlino & Gavin Lambert","I Never Promised You a Rose Garden",false],
+  [1977,"Larry Gelbart","Oh, God!",false],
+  [1977,"Scenario: Luis Buñuel; Collaboration: Jean-Claude Carrière","That Obscure Object of Desire",false],
+  [1978,"Oliver Stone","Midnight Express",true],
+  [1978,"Walter Newman","Bloodbrothers",false],
+  [1978,"Neil Simon","California Suite",false],
+  [1978,"Warren Beatty & Elaine May","Heaven Can Wait",false],
+  [1978,"Bernard Slade","Same Time, Next Year",false],
+  [1979,"Robert Benton","Kramer vs. Kramer",true],
+  [1979,"Francis Ford Coppola & John Milius","Apocalypse Now",false],
+  [1979,"Marcello Danon, Édouard Molinaro, Jean Poiret & Francis Veber","La Cage aux Folles",false],
+  [1979,"Allan Burns","A Little Romance",false],
+  [1979,"Harriet Frank Jr. & Irving Ravetch","Norma Rae",false],
+  [1980,"Alvin Sargent","Ordinary People",true],
+  [1980,"Bruce Beresford, Jonathan Hardy & David Stevens","Breaker Morant",false],
+  [1980,"Thomas Rickman","Coal Miner's Daughter",false],
+  [1980,"Eric Bergren, Christopher De Vore & David Lynch","The Elephant Man",false],
+  [1980,"","The Stunt Man",false],
+  [1981,"Ernest Thompson","On Golden Pond",true],
+  [1981,"Harold Pinter","The French Lieutenant's Woman",false],
+  [1981,"Dennis Potter","Pennies from Heaven",false],
+  [1981,"Jay Presson Allen & Sidney Lumet","Prince of the City",false],
+  [1981,"Michael Weller","Ragtime",false],
+  [1982,"Costa-Gavras & Donald E. Stewart","Missing",true],
+  [1982,"Wolfgang Petersen","Das Boot",false],
+  [1982,"Alan J. Pakula","Sophie's Choice",false],
+  [1982,"David Mamet","The Verdict",false],
+  [1982,"Blake Edwards","Victor/Victoria",false],
+  [1983,"James L. Brooks","Terms of Endearment",true],
+  [1983,"Harold Pinter","Betrayal",false],
+  [1983,"Ronald Harwood","The Dresser",false],
+  [1983,"Willy Russell","Educating Rita",false],
+  [1983,"Julius J. Epstein","Reuben, Reuben",false],
+  [1984,"Peter Shaffer","Amadeus",true],
+  [1984,"Michael Austin & Robert Towne&#91;note 15&#93;&#91;13&#93;","Greystoke: The Legend of Tarzan, Lord of the Apes",false],
+  [1984,"Bruce Robinson","The Killing Fields",false],
+  [1984,"David Lean","A Passage to India",false],
+  [1984,"Charles Fuller","A Soldier's Story",false],
+  [1985,"Kurt Luedtke","Out of Africa",true],
+  [1985,"Menno Meyjes","The Color Purple",false],
+  [1985,"Leonard Schrader","Kiss of the Spider Woman",false],
+  [1985,"Richard Condon & Janet Roach","Prizzi's Honor",false],
+  [1985,"Horton Foote","The Trip to Bountiful",false],
+  [1986,"Ruth Prawer Jhabvala","A Room with a View",true],
+  [1986,"Hesper Anderson & Mark Medoff","Children of a Lesser God",false],
+  [1986,"Richard Price","The Color of Money",false],
+  [1986,"Beth Henley","Crimes of the Heart",false],
+  [1986,"Bruce A. Evans & Raynold Gideon","Stand by Me",false],
+  [1987,"Bernardo Bertolucci & Mark Peploe","The Last Emperor",true],
+  [1987,"Tony Huston","The Dead",false],
+  [1987,"James Dearden","Fatal Attraction",false],
+  [1987,"Gustav Hasford, Michael Herr & Stanley Kubrick","Full Metal Jacket",false],
+  [1987,"Per Berglund, Brasse Brännström, Lasse Hallström & Reidar Jönsson","My Life as a Dog",false],
+  [1988,"Christopher Hampton","Dangerous Liaisons",true],
+  [1988,"Frank Galati & Lawrence Kasdan","The Accidental Tourist",false],
+  [1988,"","Gorillas in the Mist",false],
+  [1988,"Christine Edzard","Little Dorrit",false],
+  [1988,"Jean-Claude Carrière & Philip Kaufman","The Unbearable Lightness of Being",false],
+  [1989,"Alfred Uhry","Driving Miss Daisy",true],
+  [1989,"Ron Kovic & Oliver Stone","Born on the Fourth of July",false],
+  [1989,"Paul Mazursky & Roger L. Simon","Enemies, A Love Story",false],
+  [1989,"Phil Alden Robinson","Field of Dreams",false],
+  [1989,"Shane Connaughton & Jim Sheridan","My Left Foot",false],
+  [1990,"Michael Blake","Dances with Wolves",true],
+  [1990,"Steven Zaillian","Awakenings",false],
+  [1990,"Nicholas Pileggi & Martin Scorsese","Goodfellas",false],
+  [1990,"Donald E. Westlake","The Grifters",false],
+  [1990,"Nicholas Kazan","Reversal of Fortune",false],
+  [1991,"Ted Tally","The Silence of the Lambs",true],
+  [1991,"Agnieszka Holland","Europa Europa",false],
+  [1991,"Fannie Flagg & Carol Sobieski (p.n.)","Fried Green Tomatoes",false],
+  [1991,"Zachary Sklar & Oliver Stone","JFK",false],
+  [1991,"Pat Conroy & Becky Johnston","The Prince of Tides",false],
+  [1992,"Ruth Prawer Jhabvala","Howards End",true],
+  [1992,"","Enchanted April",false],
+  [1992,"Michael Tolkin","The Player",false],
+  [1992,"Richard Friedenberg","A River Runs Through It",false],
+  [1992,"Bo Goldman","Scent of a Woman",false],
+  [1993,"Steven Zaillian","Schindler's List",true],
+  [1993,"Jay Cocks & Martin Scorsese","The Age of Innocence",false],
+  [1993,"Terry George & Jim Sheridan","In the Name of the Father",false],
+  [1993,"Ruth Prawer Jhabvala","The Remains of the Day",false],
+  [1993,"William Nicholson","Shadowlands",false],
+  [1994,"Eric Roth","Forrest Gump",true],
+  [1994,"Alan Bennett","The Madness of King George",false],
+  [1994,"Robert Benton","Nobody's Fool",false],
+  [1994,"Paul Attanasio","Quiz Show",false],
+  [1994,"Frank Darabont","The Shawshank Redemption",false],
+  [1995,"Emma Thompson","Sense and Sensibility",true],
+  [1995,"William Broyles Jr. & Al Reinert","Apollo 13",false],
+  [1995,"George Miller & Chris Noonan","Babe",false],
+  [1995,"Mike Figgis","Leaving Las Vegas",false],
+  [1995,"","Il Postino: The Postman",false],
+  [1996,"Billy Bob Thornton","Sling Blade",true],
+  [1996,"Arthur Miller","The Crucible",false],
+  [1996,"Anthony Minghella","The English Patient",false],
+  [1996,"Kenneth Branagh","Hamlet",false],
+  [1996,"John Hodge","Trainspotting",false],
+  [1997,"Curtis Hanson & Brian Helgeland","L.A. Confidential",true],
+  [1997,"Paul Attanasio","Donnie Brasco",false],
+  [1997,"Atom Egoyan","The Sweet Hereafter",false],
+  [1997,"Hilary Henkin & David Mamet","Wag the Dog",false],
+  [1997,"Hossein Amini","The Wings of the Dove",false],
+  [1998,"Bill Condon","Gods and Monsters",true],
+  [1998,"Scott Frank","Out of Sight",false],
+  [1998,"Elaine May","Primary Colors",false],
+  [1998,"Scott Smith","A Simple Plan",false],
+  [1998,"Terrence Malick","The Thin Red Line",false],
+  [1999,"John Irving","The Cider House Rules",true],
+  [1999,"Alexander Payne & Jim Taylor","Election",false],
+  [1999,"Frank Darabont","The Green Mile",false],
+  [1999,"Michael Mann & Eric Roth","The Insider",false],
+  [1999,"Anthony Minghella","The Talented Mr. Ripley",false],
+  [2000,"Stephen Gaghan","Traffic",true],
+  [2000,"Robert Nelson Jacobs","Chocolat",false],
+  [2000,"Wang Hui-ling, James Schamus & Kuo Jung Tsai","Crouching Tiger, Hidden Dragon",false],
+  [2000,"Joel and Ethan Coen","O Brother, Where Art Thou?",false],
+  [2000,"Steve Kloves","Wonder Boys",false],
+  [2001,"Akiva Goldsman","A Beautiful Mind",true],
+  [2001,"Daniel Clowes & Terry Zwigoff","Ghost World",false],
+  [2001,"Rob Festinger & Todd Field","In the Bedroom",false],
+  [2001,"Philippa Boyens, Peter Jackson & Fran Walsh","The Lord of the Rings: The Fellowship of the Ring",false],
+  [2001,"Ted Elliott, Roger S. H. Schulman, Joe Stillman & Terry Rossio","Shrek",false],
+  [2002,"Ronald Harwood","The Pianist",true],
+  [2002,"Peter Hedges, Chris & Paul Weitz","About a Boy",false],
+  [2002,"Charlie & Donald Kaufman&#91;note 16&#93;&#91;13&#93;","Adaptation",false],
+  [2002,"Bill Condon","Chicago",false],
+  [2002,"","The Hours",false],
+  [2003,"Philippa Boyens, Peter Jackson & Fran Walsh","The Lord of the Rings: The Return of the King",true],
+  [2003,"Shari Springer Berman & Robert Pulcini","American Splendor",false],
+  [2003,"Bráulio Mantovani","City of God",false],
+  [2003,"Brian Helgeland","Mystic River",false],
+  [2003,"Gary Ross","Seabiscuit",false],
+  [2004,"Alexander Payne & Jim Taylor","Sideways",true],
+  [2004,"","Before Sunset",false],
+  [2004,"David Magee","Finding Neverland",false],
+  [2004,"Paul Haggis","Million Dollar Baby",false],
+  [2004,"","The Motorcycle Diaries",false],
+  [2005,"Larry McMurtry & Diana Ossana","Brokeback Mountain",true],
+  [2005,"Dan Futterman","Capote",false],
+  [2005,"Jeffrey Caine","The Constant Gardener",false],
+  [2005,"Josh Olson","A History of Violence",false],
+  [2005,"Tony Kushner & Eric Roth","Munich",false],
+  [2006,"William Monahan","The Departed",true],
+  [2006,"","Borat: Cultural Learnings of America for Make Benefit Glorious Nation of Kazakhstan",false],
+  [2006,"Alfonso Cuarón, Timothy J. Sexton, David Arata, Mark Fergus & Hawk Ostby","Children of Men",false],
+  [2006,"Todd Field & Tom Perrotta","Little Children",false],
+  [2006,"Patrick Marber","Notes on a Scandal",false],
+  [2007,"Coen Brothers","No Country for Old Men",true],
+  [2007,"Christopher Hampton","Atonement",false],
+  [2007,"Sarah Polley","Away from Her",false],
+  [2007,"Ronald Harwood","The Diving Bell and the Butterfly",false],
+  [2007,"Paul Thomas Anderson","There Will Be Blood",false],
+  [2008,"Simon Beaufoy","Slumdog Millionaire",true],
+  [2008,"","The Curious Case of Benjamin Button",false],
+  [2008,"John Patrick Shanley","Doubt",false],
+  [2008,"Peter Morgan","Frost/Nixon",false],
+  [2008,"","The Reader",false],
+  [2009,"Geoffrey S. Fletcher","Precious",true],
+  [2009,"Neill Blomkamp & Terri Tatchell","District 9",false],
+  [2009,"Nick Hornby","An Education",false],
+  [2009,"Jesse Armstrong, Simon Blackwell, Armando Iannucci & Tony Roche","In the Loop",false],
+  [2009,"Jason Reitman and Sheldon Turner","Up in the Air",false],
+  [2010,"Aaron Sorkin","The Social Network",true],
+  [2010,"Danny Boyle & Simon Beaufoy","127 Hours",false],
+  [2010,"","Toy Story 3",false],
+  [2010,"Coen Brothers","True Grit",false],
+  [2010,"Debra Granik & Anne Rosellini","Winter's Bone",false],
+  [2011,"Alexander Payne and Nat Faxon & Jim Rash","The Descendants",true],
+  [2011,"John Logan","Hugo",false],
+  [2011,"George Clooney & Grant Heslov and Beau Willimon","The Ides of March",false],
+  [2011,"","Moneyball",false],
+  [2011,"Bridget O'Connor (p.n.) & Peter Straughan","Tinker Tailor Soldier Spy",false],
+  [2012,"Chris Terrio","Argo",true],
+  [2012,"Lucy Alibar & Benh Zeitlin","Beasts of the Southern Wild",false],
+  [2012,"David Magee","Life of Pi",false],
+  [2012,"Tony Kushner","Lincoln",false],
+  [2012,"David O. Russell","Silver Linings Playbook",false],
+  [2013,"John Ridley","12 Years a Slave",true],
+  [2013,"Richard Linklater, Julie Delpy & Ethan Hawke","Before Midnight",false],
+  [2013,"Billy Ray","Captain Phillips",false],
+  [2013,"Steve Coogan & Jeff Pope","Philomena",false],
+  [2013,"Terence Winter","The Wolf of Wall Street",false],
+  [2014,"Graham Moore","The Imitation Game",true],
+  [2014,"Jason Hall","American Sniper",false],
+  [2014,"Paul Thomas Anderson","Inherent Vice",false],
+  [2014,"Anthony McCarten","The Theory of Everything",false],
+  [2014,"Damien Chazelle","Whiplash",false],
+  [2015,"Charles Randolph & Adam McKay","The Big Short",true],
+  [2015,"Nick Hornby","Brooklyn",false],
+  [2015,"Phyllis Nagy","Carol",false],
+  [2015,"Drew Goddard","The Martian",false],
+  [2015,"Emma Donoghue","Room",false],
+  [2016,"","Moonlight",true],
+  [2016,"Eric Heisserer","Arrival",false],
+  [2016,"August Wilson (p.n.)","Fences",false],
+  [2016,"Allison Schroeder & Theodore Melfi","Hidden Figures",false],
+  [2016,"Luke Davies","Lion",false],
+  [2017,"James Ivory","Call Me by Your Name",true],
+  [2017,"Scott Neustadter & Michael H. Weber","The Disaster Artist",false],
+  [2017,"","Logan",false],
+  [2017,"Aaron Sorkin","Molly's Game",false],
+  [2017,"Virgil Williams & Dee Rees","Mudbound",false],
+  [2018,"Charlie Wachtel & David Rabinowitz and Kevin Willmott & Spike Lee","BlacKkKlansman",true],
+  [2018,"Coen Brothers","The Ballad of Buster Scruggs",false],
+  [2018,"Nicole Holofcener & Jeff Whitty","Can You Ever Forgive Me?",false],
+  [2018,"Barry Jenkins","If Beale Street Could Talk",false],
+  [2018,"Eric Roth and Bradley Cooper & Will Fetters","A Star Is Born",false],
+  [2019,"Taika Waititi","Jojo Rabbit",true],
+  [2019,"Steven Zaillian","The Irishman",false],
+  [2019,"Todd Phillips & Scott Silver","Joker",false],
+  [2019,"Greta Gerwig","Little Women",false],
+  [2019,"Anthony McCarten","The Two Popes",false],
+  [2021,"Siân Heder","CODA",true],
+  [2021,"Ryusuke Hamaguchi & Takamasa Oe","Drive My Car",false],
+  [2021,"Jon Spaihts, Denis Villeneuve & Eric Roth","Dune",false],
+  [2021,"Maggie Gyllenhaal","The Lost Daughter",false],
+  [2021,"Jane Campion","The Power of the Dog",false],
+  [2022,"Sarah Polley","Women Talking",true],
+  [2022,"Edward Berger, Lesley Paterson & Ian Stokell","All Quiet on the Western Front",false],
+  [2022,"Rian Johnson","Glass Onion: A Knives Out Mystery",false],
+  [2022,"Kazuo Ishiguro","Living",false],
+  [2022,"","Top Gun: Maverick",false],
+  [2023,"Cord Jefferson","American Fiction",true],
+  [2023,"Greta Gerwig & Noah Baumbach","Barbie",false],
+  [2023,"Christopher Nolan","Oppenheimer",false],
+  [2023,"Tony McNamara","Poor Things",false],
+  [2023,"Jonathan Glazer","The Zone of Interest",false],
+  [2024,"James Mangold & Jay Cocks","A Complete Unknown",false],
+  [2024,"Jacques Audiard, in collaboration with Thomas Bidegain, Léa Mysius & Nicolas Livecchi","Emilia Pérez",false],
+  [2024,"RaMell Ross & Joslyn Barnes","Nickel Boys",false],
+  [2024,"Peter Straughan","Conclave",true],
+  [2024,"Greg Kwedar & Clint Bentley","Sing Sing",false]
+];
+adaptedRaw.forEach(([y,p,f,w]) => {
+  if (y >= 1970 && y <= 2024) ALL.push({year:y, film:f, category:"Best Adapted Screenplay", person:p, winner:w, streaming:getStreaming(f)});
+});
+
+// --- Best Original Screenplay (film year) ---
+const originalRaw = [
+  [1970,"Francis Ford Coppola & Edmund H. North","Patton",true],
+  [1970,"","Five Easy Pieces",false],
+  [1970,"Norman Wexler","Joe",false],
+  [1970,"Erich Segal","Love Story",false],
+  [1970,"Éric Rohmer","My Night at Maud's",false],
+  [1971,"Paddy Chayefsky","The Hospital",true],
+  [1971,"Elio Petri & Ugo Pirro","Investigation of a Citizen Above Suspicion",false],
+  [1971,"Andy & David Lewis","Klute",false],
+  [1971,"Herman Raucher","Summer of '42",false],
+  [1971,"Penelope Gilliatt","Sunday Bloody Sunday",false],
+  [1972,"Jeremy Larner","The Candidate",true],
+  [1972,"","The Discreet Charm of the Bourgeoisie",false],
+  [1972,"Chris Clark, Suzanne de Passe & Terrence McCloy","Lady Sings the Blues",false],
+  [1972,"Louis Malle","Murmur of the Heart",false],
+  [1972,"Carl Foreman","Young Winston",false],
+  [1973,"David S. Ward","The Sting",true],
+  [1973,"Willard Huyck, George Lucas & Gloria Katz","American Graffiti",false],
+  [1973,"Ingmar Bergman","Cries and Whispers",false],
+  [1973,"Steve Shagan","Save the Tiger",false],
+  [1973,"Melvin Frank & Jack Rose","A Touch of Class",false],
+  [1974,"Robert Towne","Chinatown",true],
+  [1974,"Robert Getchell","Alice Doesn't Live Here Anymore",false],
+  [1974,"Francis Ford Coppola","The Conversation",false],
+  [1974,"Jean-Louis Richard, Suzanne Schiffman & François Truffaut","Day for Night",false],
+  [1974,"Josh Greenfeld & Paul Mazursky","Harry and Tonto",false],
+  [1975,"Frank Pierson","Dog Day Afternoon",true],
+  [1975,"Federico Fellini & Tonino Guerra","Amarcord",false],
+  [1975,"Claude Lelouch & Pierre Uytterhoeven","And Now My Love",false],
+  [1975,"Ted Allan","Lies My Father Told Me",false],
+  [1975,"Robert Towne & Warren Beatty","Shampoo",false],
+  [1976,"Paddy Chayefsky","Network",true],
+  [1976,"","Cousin Cousine",false],
+  [1976,"Walter Bernstein","The Front",false],
+  [1976,"Sylvester Stallone","Rocky",false],
+  [1976,"Lina Wertmüller","Seven Beauties",false],
+  [1977,"Woody Allen & Marshall Brickman","Annie Hall",true],
+  [1977,"Neil Simon","The Goodbye Girl",false],
+  [1977,"Robert Benton","The Late Show",false],
+  [1977,"George Lucas","Star Wars",false],
+  [1977,"Arthur Laurents","The Turning Point",false],
+  [1978,"","Coming Home",true],
+  [1978,"Ingmar Bergman","Autumn Sonata",false],
+  [1978,"","The Deer Hunter",false],
+  [1978,"Woody Allen","Interiors",false],
+  [1978,"Paul Mazursky","An Unmarried Woman",false],
+  [1979,"Steve Tesich","Breaking Away",true],
+  [1979,"Robert Alan Aurthur & Bob Fosse","All That Jazz",false],
+  [1979,"Valerie Curtin & Barry Levinson","...And Justice for All.",false],
+  [1979,"James Bridges, T. S. Cook & Mike Gray","The China Syndrome",false],
+  [1979,"Woody Allen & Marshall Brickman","Manhattan",false],
+  [1980,"Bo Goldman","Melvin and Howard",true],
+  [1980,"","Brubaker",false],
+  [1980,"Christopher Gore","Fame",false],
+  [1980,"Jean Gruault","Mon oncle d'Amérique",false],
+  [1980,"Nancy Meyers, Harvey Miller & Charles Shyer","Private Benjamin",false],
+  [1981,"Colin Welland","Chariots of Fire",true],
+  [1981,"Kurt Luedtke","Absence of Malice",false],
+  [1981,"Steve Gordon","Arthur",false],
+  [1981,"John Guare","Atlantic City",false],
+  [1981,"Trevor Griffiths & Warren Beatty","Reds",false],
+  [1982,"John Briley","Gandhi",true],
+  [1982,"Barry Levinson","Diner",false],
+  [1982,"Melissa Mathison","E.T. the Extra-Terrestrial",false],
+  [1982,"Douglas Day Stewart","An Officer and a Gentleman",false],
+  [1982,"","Tootsie",false],
+  [1983,"Horton Foote","Tender Mercies",true],
+  [1983,"Barbara Benedek & Lawrence Kasdan","The Big Chill",false],
+  [1983,"Ingmar Bergman","Fanny and Alexander",false],
+  [1983,"Alice Arlen & Nora Ephron","Silkwood",false],
+  [1983,"Lawrence Lasker & Walter Parkes","WarGames",false],
+  [1984,"Robert Benton","Places in the Heart",true],
+  [1984,"","Beverly Hills Cop",false],
+  [1984,"Woody Allen","Broadway Danny Rose",false],
+  [1984,"Gregory Nava & Anna Thomas","El Norte",false],
+  [1984,"","Splash",false],
+  [1985,"","Witness",true],
+  [1985,"Bob Gale & Robert Zemeckis","Back to the Future",false],
+  [1985,"Terry Gilliam, Charles McKeown & Tom Stoppard","Brazil",false],
+  [1985,"Aída Bortnik & Luis Puenzo","The Official Story",false],
+  [1985,"Woody Allen","The Purple Rose of Cairo",false],
+  [1986,"Woody Allen","Hannah and Her Sisters",true],
+  [1986,"","Crocodile Dundee",false],
+  [1986,"Hanif Kureishi","My Beautiful Laundrette",false],
+  [1986,"Oliver Stone","Platoon",false],
+  [1986,"Richard Boyle & Stone","Salvador",false],
+  [1987,"John Patrick Shanley","Moonstruck",true],
+  [1987,"Louis Malle","Au Revoir Les Enfants (Goodbye, Children)",false],
+  [1987,"James L. Brooks","Broadcast News",false],
+  [1987,"John Boorman","Hope and Glory",false],
+  [1987,"Woody Allen","Radio Days",false],
+  [1988,"","Rain Man",true],
+  [1988,"Gary Ross & Anne Spielberg","Big",false],
+  [1988,"Ron Shelton","Bull Durham",false],
+  [1988,"","A Fish Called Wanda",false],
+  [1988,"Naomi Foner Gyllenhaal","Running on Empty",false],
+  [1989,"Tom Schulman","Dead Poets Society",true],
+  [1989,"Woody Allen","Crimes and Misdemeanors",false],
+  [1989,"Spike Lee","Do the Right Thing",false],
+  [1989,"Steven Soderbergh","Sex, Lies, and Videotape",false],
+  [1989,"Nora Ephron","When Harry Met Sally...",false],
+  [1990,"Bruce Joel Rubin","Ghost",true],
+  [1990,"Woody Allen","Alice",false],
+  [1990,"Barry Levinson","Avalon",false],
+  [1990,"Peter Weir","Green Card",false],
+  [1990,"Whit Stillman","Metropolitan",false],
+  [1991,"Callie Khouri","Thelma & Louise",true],
+  [1991,"John Singleton","Boyz n the Hood",false],
+  [1991,"James Toback","Bugsy",false],
+  [1991,"Richard LaGravenese","The Fisher King",false],
+  [1991,"Lawrence Kasdan & Meg Kasdan","Grand Canyon",false],
+  [1992,"Neil Jordan","The Crying Game",true],
+  [1992,"Woody Allen","Husbands and Wives",false],
+  [1992,"Nick Enright & George Miller","Lorenzo's Oil",false],
+  [1992,"John Sayles","Passion Fish",false],
+  [1992,"David Peoples","Unforgiven",false],
+  [1993,"Jane Campion","The Piano",true],
+  [1993,"Gary Ross","Dave",false],
+  [1993,"Jeff Maguire","In the Line of Fire",false],
+  [1993,"Ron Nyswaner","Philadelphia",false],
+  [1993,"","Sleepless in Seattle",false],
+  [1994,"","Pulp Fiction",true],
+  [1994,"Woody Allen & Douglas McGrath","Bullets Over Broadway",false],
+  [1994,"Richard Curtis","Four Weddings and a Funeral",false],
+  [1994,"Peter Jackson & Frances Walsh","Heavenly Creatures",false],
+  [1994,"Krzysztof Kieślowski & Krzysztof Piesiewicz","Three Colours: Red",false],
+  [1995,"Christopher McQuarrie","The Usual Suspects",true],
+  [1995,"Randall Wallace","Braveheart",false],
+  [1995,"Woody Allen","Mighty Aphrodite",false],
+  [1995,"Stephen J. Rivele, Oliver Stone & Christopher Wilkinson","Nixon",false],
+  [1995,"","Toy Story",false],
+  [1996,"Coen Brothers","Fargo",true],
+  [1996,"Cameron Crowe","Jerry Maguire",false],
+  [1996,"John Sayles","Lone Star",false],
+  [1996,"Mike Leigh","Secrets & Lies",false],
+  [1996,"","Shine",false],
+  [1997,"Ben Affleck & Matt Damon","Good Will Hunting",true],
+  [1997,"","As Good as It Gets",false],
+  [1997,"Paul Thomas Anderson","Boogie Nights",false],
+  [1997,"Woody Allen","Deconstructing Harry",false],
+  [1997,"Simon Beaufoy","The Full Monty",false],
+  [1998,"Marc Norman & Tom Stoppard","Shakespeare in Love",true],
+  [1998,"","Bulworth",false],
+  [1998,"Roberto Benigni & Vincenzo Cerami","Life Is Beautiful",false],
+  [1998,"Robert Rodat","Saving Private Ryan",false],
+  [1998,"Andrew Niccol","The Truman Show",false],
+  [1999,"Alan Ball","American Beauty",true],
+  [1999,"Charlie Kaufman","Being John Malkovich",false],
+  [1999,"Paul Thomas Anderson","Magnolia",false],
+  [1999,"M. Night Shyamalan","The Sixth Sense",false],
+  [1999,"Mike Leigh","Topsy-Turvy",false],
+  [2000,"Cameron Crowe","Almost Famous",true],
+  [2000,"","Billy Elliot",false],
+  [2000,"Susannah Grant","Erin Brockovich",false],
+  [2000,"","Gladiator",false],
+  [2000,"Kenneth Lonergan","You Can Count on Me",false],
+  [2001,"Julian Fellowes","Gosford Park",true],
+  [2001,"","Amélie",false],
+  [2001,"","Memento",false],
+  [2001,"","Monster's Ball",false],
+  [2001,"Wes Anderson & Owen Wilson","The Royal Tenenbaums",false],
+  [2002,"Pedro Almodóvar","Talk to Her",true],
+  [2002,"Todd Haynes","Far from Heaven",false],
+  [2002,"","Gangs of New York",false],
+  [2002,"Nia Vardalos","My Big Fat Greek Wedding",false],
+  [2002,"Alfonso & Carlos Cuarón","Y Tu Mamá También",false],
+  [2003,"Sofia Coppola","Lost in Translation",true],
+  [2003,"Denys Arcand","The Barbarian Invasions",false],
+  [2003,"Steven Knight","Dirty Pretty Things",false],
+  [2003,"","Finding Nemo",false],
+  [2003,"Jim, Kirsten & Naomi Sheridan","In America",false],
+  [2004,"","Eternal Sunshine of the Spotless Mind",true],
+  [2004,"John Logan","The Aviator",false],
+  [2004,"Terry George & Keir Pearson","Hotel Rwanda",false],
+  [2004,"Brad Bird","The Incredibles",false],
+  [2004,"Mike Leigh","Vera Drake",false],
+  [2005,"","Crash",true],
+  [2005,"George Clooney & Grant Heslov","Good Night, and Good Luck",false],
+  [2005,"Woody Allen","Match Point",false],
+  [2005,"Noah Baumbach","The Squid and the Whale",false],
+  [2005,"Stephen Gaghan","Syriana",false],
+  [2006,"Michael Arndt","Little Miss Sunshine",true],
+  [2006,"Guillermo Arriaga","Babel",false],
+  [2006,"","Letters from Iwo Jima",false],
+  [2006,"Guillermo del Toro","Pan's Labyrinth",false],
+  [2006,"Peter Morgan","The Queen",false],
+  [2007,"Diablo Cody","Juno",true],
+  [2007,"Nancy Oliver","Lars and the Real Girl",false],
+  [2007,"Tony Gilroy","Michael Clayton",false],
+  [2007,"","Ratatouille",false],
+  [2007,"Tamara Jenkins","The Savages",false],
+  [2008,"Dustin Lance Black","Milk",true],
+  [2008,"Courtney Hunt","Frozen River",false],
+  [2008,"Mike Leigh","Happy-Go-Lucky",false],
+  [2008,"Martin McDonagh","In Bruges",false],
+  [2008,"","WALL-E",false],
+  [2009,"Mark Boal","The Hurt Locker",true],
+  [2009,"Quentin Tarantino","Inglourious Basterds",false],
+  [2009,"Alessandro Camon & Oren Moverman","The Messenger",false],
+  [2009,"Coen Brothers","A Serious Man",false],
+  [2009,"","Up",false],
+  [2010,"David Seidler","The King's Speech",true],
+  [2010,"Mike Leigh","Another Year",false],
+  [2010,"","The Fighter",false],
+  [2010,"Christopher Nolan","Inception",false],
+  [2010,"Lisa Cholodenko & Stuart Blumberg","The Kids Are All Right",false],
+  [2011,"Woody Allen","Midnight in Paris",true],
+  [2011,"Michel Hazanavicius","The Artist",false],
+  [2011,"Annie Mumolo & Kristen Wiig","Bridesmaids",false],
+  [2011,"J. C. Chandor","Margin Call",false],
+  [2011,"Asghar Farhadi","A Separation",false],
+  [2012,"Quentin Tarantino","Django Unchained",true],
+  [2012,"Michael Haneke","Amour",false],
+  [2012,"John Gatins","Flight",false],
+  [2012,"Wes Anderson & Roman Coppola","Moonrise Kingdom",false],
+  [2012,"Mark Boal","Zero Dark Thirty",false],
+  [2013,"Spike Jonze","Her",true],
+  [2013,"Eric Warren Singer & David O. Russell","American Hustle",false],
+  [2013,"Woody Allen","Blue Jasmine",false],
+  [2013,"Craig Borten & Melisa Wallack","Dallas Buyers Club",false],
+  [2013,"Bob Nelson","Nebraska",false],
+  [2014,"Alejandro G. Iñárritu, Nicolás Giacobone, Alexander Dinelaris Jr. & Armando Bo","Birdman",true],
+  [2014,"Richard Linklater","Boyhood",false],
+  [2014,"E. Max Frye & Dan Futterman","Foxcatcher",false],
+  [2014,"","The Grand Budapest Hotel",false],
+  [2014,"Dan Gilroy","Nightcrawler",false],
+  [2015,"Josh Singer & Tom McCarthy","Spotlight",true],
+  [2015,"Matt Charman & Coen Brothers","Bridge of Spies",false],
+  [2015,"Alex Garland","Ex Machina",false],
+  [2015,"","Inside Out",false],
+  [2015,"","Straight Outta Compton",false],
+  [2016,"Kenneth Lonergan","Manchester by the Sea",true],
+  [2016,"Taylor Sheridan","Hell or High Water",false],
+  [2016,"Damien Chazelle","La La Land",false],
+  [2016,"Yorgos Lanthimos & Efthymis Filippou","The Lobster",false],
+  [2016,"Mike Mills","20th Century Women",false],
+  [2017,"Jordan Peele","Get Out",true],
+  [2017,"Emily V. Gordon & Kumail Nanjiani","The Big Sick",false],
+  [2017,"Greta Gerwig","Lady Bird",false],
+  [2017,"","The Shape of Water",false],
+  [2017,"Martin McDonagh","Three Billboards Outside Ebbing, Missouri",false],
+  [2018,"Nick Vallelonga, Brian Currie & Peter Farrelly","Green Book",true],
+  [2018,"Deborah Davis & Tony McNamara","The Favourite",false],
+  [2018,"Paul Schrader","First Reformed",false],
+  [2018,"Alfonso Cuarón","Roma",false],
+  [2018,"Adam McKay","Vice",false],
+  [2019,"","Parasite",true],
+  [2019,"Rian Johnson","Knives Out",false],
+  [2019,"Noah Baumbach","Marriage Story",false],
+  [2019,"Sam Mendes & Krysty Wilson-Cairns","1917",false],
+  [2019,"Quentin Tarantino","Once Upon a Time in Hollywood",false],
+  [2021,"Kenneth Branagh","Belfast",true],
+  [2021,"","Don't Look Up",false],
+  [2021,"Zach Baylin","King Richard",false],
+  [2021,"Paul Thomas Anderson","Licorice Pizza",false],
+  [2021,"Eskil Vogt & Joachim Trier","The Worst Person in the World",false],
+  [2022,"Daniel Kwan and Daniel Scheinert","Everything Everywhere All at Once",true],
+  [2022,"Martin McDonagh","The Banshees of Inisherin",false],
+  [2022,"Steven Spielberg & Tony Kushner","The Fabelmans",false],
+  [2022,"Todd Field","Tár",false],
+  [2022,"Ruben Östlund","Triangle of Sadness",false],
+  [2023,"Justine Triet & Arthur Harari","Anatomy of a Fall",true],
+  [2023,"David Hemingson","The Holdovers",false],
+  [2023,"Bradley Cooper & Josh Singer","Maestro",false],
+  [2023,"","May December",false],
+  [2023,"Celine Song","Past Lives",false],
+  [2024,"Sean Baker","Anora",true],
+  [2024,"Brady Corbet & Mona Fastvold","The Brutalist",false],
+  [2024,"Jesse Eisenberg","A Real Pain",false],
+  [2024,"Moritz Binder, Alex David & Tim Fehlbaum","September 5",false],
+  [2024,"Coralie Fargeat","The Substance",false]
+];
+originalRaw.forEach(([y,p,f,w]) => {
+  if (y >= 1970 && y <= 2024) ALL.push({year:y, film:f, category:"Best Original Screenplay", person:p, winner:w, streaming:getStreaming(f)});
+});
+
+// ===== GROUP NOMINATIONS BY FILM =====
+// Create a map: "film|year" -> grouped object
+const FILMS = {};
+ALL.forEach(n => {
+  const key = n.film + '|' + n.year;
+  if (!FILMS[key]) {
+    FILMS[key] = { year: n.year, film: n.film, streaming: n.streaming, noms: [] };
+  }
+  FILMS[key].noms.push({ category: n.category, person: n.person, winner: n.winner });
+});
+const FILM_LIST = Object.values(FILMS);
+
+// ===== APP LOGIC =====
+let sortCol = 'year';
+let sortAsc = false;
+let filtered = [];
+
+const $tableBody = document.getElementById('tableBody');
+const $tableContainer = document.getElementById('tableContainer');
+const $totalCount = document.getElementById('totalCount');
+const $filmCount = document.getElementById('filmCount');
+const $searchBox = document.getElementById('searchBox');
+const $yearSelect = document.getElementById('yearSelect');
+const $winnersOnly = document.getElementById('winnersOnly');
+const $boxOfficeToggle = document.getElementById('boxOfficeToggle');
+const $streamingFilter = document.getElementById('streamingFilter');
+const $scrollTop = document.getElementById('scrollTop');
+
+// Populate year dropdown
+const years = [...new Set(FILM_LIST.map(f => f.year))].sort((a,b) => b - a);
+years.forEach(y => {
+  const opt = document.createElement('option');
+  opt.value = y;
+  opt.textContent = y;
+  $yearSelect.appendChild(opt);
+});
+
+function getCheckedCategories() {
+  return [...document.querySelectorAll('.checkboxes input[type="checkbox"]:checked')].map(c => c.value);
+}
+
+function applyFilters() {
+  const cats = getCheckedCategories();
+  const yearVal = $yearSelect.value;
+  const winOnly = $winnersOnly.checked;
+  const showBoxOffice = $boxOfficeToggle.checked;
+  const q = $searchBox.value.toLowerCase().trim();
+  const stream = $streamingFilter.value;
+
+  const searchOverride = q.length > 0 && cats.length === 0 && !showBoxOffice;
+  const hasCats = cats.length > 0 || searchOverride;
+  const selectedYear = yearVal !== 'all' ? parseInt(yearVal) : null;
+
+  // Build box office lookup: film -> rank, for relevant years
+  const boLookup = {};
+  if (showBoxOffice) {
+    const yearsToCheck = selectedYear ? [selectedYear] : Object.keys(BOX_OFFICE).map(Number);
+    for (const yr of yearsToCheck) {
+      (BOX_OFFICE[yr] || []).forEach((film, idx) => {
+        boLookup[film + '|' + yr] = idx + 1;
+      });
+    }
+  }
+
+  filtered = [];
+
+  // CASE 1: Categories checked (with or without box office)
+  if (hasCats) {
+    FILM_LIST.forEach(f => {
+      const relevantNoms = searchOverride ? f.noms : f.noms.filter(n => cats.includes(n.category));
+      if (relevantNoms.length === 0) return;
+      if (selectedYear && f.year !== selectedYear) return;
+      if (winOnly && !relevantNoms.some(n => n.winner)) return;
+      if (q) {
+        const allPeople = f.noms.map(n => n.person.toLowerCase()).join(' ');
+        if (!f.film.toLowerCase().includes(q) && !allPeople.includes(q)) return;
+      }
+      if (stream !== 'All' && f.streaming !== stream) return;
+
+      const boKey = f.film + '|' + f.year;
+      const boRank = boLookup[boKey] || 0;
+
+      // If box office is on, only show films that are ALSO in box office top 10
+      if (showBoxOffice && boRank === 0) return;
+
+      const cats2 = searchOverride ? f.noms.map(n => n.category) : cats;
+      const vn = f.noms.filter(n => cats2.includes(n.category));
+      filtered.push({ ...f, visibleNoms: vn, boxOfficeRank: boRank });
+    });
+  }
+
+  // CASE 2: Box office only (no categories checked)
+  if (showBoxOffice && !hasCats) {
+    const yearsToShow = selectedYear ? [selectedYear] : Object.keys(BOX_OFFICE).map(Number);
+    const seen = new Set();
+
+    for (const yr of yearsToShow) {
+      (BOX_OFFICE[yr] || []).forEach((film, idx) => {
+        const key = film + '|' + yr;
+        if (seen.has(key)) return;
+        seen.add(key);
+
+        const streaming = getStreaming(film);
+        if (stream !== 'All' && streaming !== stream) return;
+        if (q && !film.toLowerCase().includes(q)) return;
+
+        // Check if this film has Oscar noms (for display, not filtering)
+        const oscarEntry = FILMS[key];
+        const noms = oscarEntry ? oscarEntry.noms : [];
+        const visibleNoms = noms; // Show all noms since no category filter
+
+        filtered.push({
+          year: yr, film: film, streaming: streaming || getStreaming(film),
+          noms: noms, visibleNoms: visibleNoms,
+          boxOfficeRank: idx + 1
+        });
+      });
+    }
+  }
+
+  // CASE 3: Nothing checked and no search - show nothing
+  // (search override already handles the "searching with nothing checked" case)
+
+  // Sort
+  filtered.sort((a, b) => {
+    let va, vb;
+    switch (sortCol) {
+      case 'year': va = a.year; vb = b.year; break;
+      case 'film': va = a.film.toLowerCase(); vb = b.film.toLowerCase(); break;
+      case 'categories': va = a.visibleNoms.length; vb = b.visibleNoms.length; break;
+      case 'people': va = a.visibleNoms.map(n=>n.person).join(',').toLowerCase(); vb = b.visibleNoms.map(n=>n.person).join(',').toLowerCase(); break;
+      case 'winner': va = a.visibleNoms.some(n=>n.winner) ? 1 : 0; vb = b.visibleNoms.some(n=>n.winner) ? 1 : 0; break;
+      case 'streaming': va = a.streaming || 'zzz'; vb = b.streaming || 'zzz'; break;
+      default: va = a.year; vb = b.year;
+    }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  render();
+}
+
+function catClass(cat) {
+  if (cat === 'Best Picture') return 'badge-picture';
+  if (cat === 'Best Director') return 'badge-director';
+  if (cat === 'Best Actor') return 'badge-actor';
+  if (cat === 'Best Actress') return 'badge-actress';
+  if (cat === 'Best Adapted Screenplay') return 'badge-adapted';
+  if (cat === 'Best Original Screenplay') return 'badge-original';
+  if (cat === 'Box Office') return 'badge-boxoffice';
+  return '';
+}
+
+function catShort(cat) {
+  return cat.replace('Best ', '');
+}
+
+function jwLink(film) {
+  return 'https://www.justwatch.com/us/search?q=' + encodeURIComponent(film);
+}
+
+function render() {
+  const totalNoms = filtered.reduce((sum, f) => sum + f.visibleNoms.length, 0);
+  $filmCount.textContent = filtered.length;
+  $totalCount.textContent = totalNoms;
+  $tableContainer.style.display = 'block';
+  renderTable();
+}
+
+function renderTable() {
+  if (filtered.length === 0) {
+    $tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-dim);">No results found</td></tr>';
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  filtered.forEach(f => {
+    const tr = document.createElement('tr');
+    const hasWin = f.visibleNoms.some(n => n.winner);
+    if (hasWin) tr.className = 'winner-row';
+    const sc = streamingClass(f.streaming);
+
+    let catBadges = f.visibleNoms.map(n =>
+      `<span class="badge ${catClass(n.category)}">${catShort(n.category)}${n.winner ? ' &#9733;' : ''}</span>`
+    ).join(' ');
+    if (f.boxOfficeRank > 0) {
+      catBadges += ` <span class="badge badge-boxoffice">#${f.boxOfficeRank} Box Office</span>`;
+    }
+
+    const people = f.visibleNoms
+      .filter(n => n.person)
+      .map(n => `${n.person}` + (f.visibleNoms.length > 1 ? ` <small style="opacity:0.5">(${catShort(n.category)})</small>` : ''))
+      .join(', ');
+
+    const wonCats = f.visibleNoms.filter(n => n.winner).map(n => catShort(n.category));
+    const wonText = wonCats.length > 0 ? `<span class="cell-winner">&#9733; ${wonCats.join(', ')}</span>` : '';
+
+    tr.innerHTML = `
+      <td class="cell-year">${f.year}</td>
+      <td class="cell-film">${f.film}</td>
+      <td>${catBadges}</td>
+      <td class="cell-person">${people || '&mdash;'}</td>
+      <td>${wonText}</td>
+      <td>${f.streaming ? `<span class="badge badge-streaming ${sc}">${f.streaming}</span>` : ''}</td>
+      <td><a href="${jwLink(f.film)}" target="_blank" rel="noopener" class="watch-link">JustWatch &#8599;</a></td>
+    `;
+    frag.appendChild(tr);
+  });
+  $tableBody.innerHTML = '';
+  $tableBody.appendChild(frag);
+  // Row count below table
+  let rc = document.getElementById('tableRowCount');
+  if (!rc) { rc = document.createElement('div'); rc.id = 'tableRowCount'; rc.className = 'table-row-count'; $tableContainer.appendChild(rc); }
+  rc.textContent = `Showing ${filtered.length} films`;
+
+  // Update sort arrows
+  document.querySelectorAll('.data-table th[data-sort]').forEach(th => {
+    const arrow = th.querySelector('.sort-arrow');
+    th.classList.toggle('sorted', th.dataset.sort === sortCol);
+    if (th.dataset.sort === sortCol) {
+      arrow.textContent = sortAsc ? '\u25B2' : '\u25BC';
+    } else {
+      arrow.textContent = '';
+    }
+  });
+}
+
+// Event listeners
+$searchBox.addEventListener('input', applyFilters);
+$yearSelect.addEventListener('change', applyFilters);
+$winnersOnly.addEventListener('change', applyFilters);
+$boxOfficeToggle.addEventListener('change', applyFilters);
+$streamingFilter.addEventListener('change', applyFilters);
+document.querySelectorAll('.checkboxes input[type="checkbox"]').forEach(cb => cb.addEventListener('change', applyFilters));
+
+document.querySelectorAll('.data-table th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (sortCol === col) {
+      sortAsc = !sortAsc;
+    } else {
+      sortCol = col;
+      sortAsc = true;
+    }
+    applyFilters();
+  });
+});
+
+window.addEventListener('scroll', () => {
+  $scrollTop.classList.toggle('visible', window.scrollY > 400);
+});
+$scrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+// Random pick
+const $randomBtn = document.getElementById('randomBtn');
+const $randomPick = document.getElementById('randomPick');
+const $randomClose = document.getElementById('randomClose');
+const $randomAgain = document.getElementById('randomAgain');
+const $randomTitle = document.getElementById('randomTitle');
+const $randomMeta = document.getElementById('randomMeta');
+const $randomStream = document.getElementById('randomStream');
+const $randomLink = document.getElementById('randomLink');
+
+function pickRandom() {
+  if (filtered.length === 0) return;
+  // Prioritize films available on a streaming service (not Rent/Buy)
+  const streamable = filtered.filter(f => f.streaming && f.streaming !== 'Rent/Buy');
+  const pool = streamable.length > 0 ? streamable : filtered;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  $randomTitle.textContent = pick.film;
+
+  // Build meta line: year + nominations
+  const parts = [pick.year];
+  if (pick.visibleNoms && pick.visibleNoms.length > 0) {
+    const wins = pick.visibleNoms.filter(n => n.winner).map(n => catShort(n.category));
+    const noms = pick.visibleNoms.filter(n => !n.winner).map(n => catShort(n.category));
+    if (wins.length > 0) parts.push('Won: ' + wins.join(', '));
+    if (noms.length > 0) parts.push('Nominated: ' + noms.join(', '));
+  }
+  if (pick.boxOfficeRank > 0) parts.push('#' + pick.boxOfficeRank + ' Box Office');
+  $randomMeta.textContent = parts.join('  •  ');
+
+  // Streaming badge
+  if (pick.streaming && pick.streaming !== 'Rent/Buy') {
+    $randomStream.innerHTML = '<span class="badge badge-streaming ' + streamingClass(pick.streaming) + '" style="font-size:1rem;padding:0.4rem 1rem;">' + pick.streaming + '</span>';
+  } else {
+    $randomStream.innerHTML = '<span style="color:var(--text-dim);font-size:0.85rem;">Available for Rent/Buy</span>';
+  }
+
+  $randomLink.href = jwLink(pick.film);
+  $randomPick.style.display = 'block';
+  $randomPick.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+$randomBtn.addEventListener('click', pickRandom);
+$randomAgain.addEventListener('click', () => {
+  $randomPick.style.animation = 'none';
+  void $randomPick.offsetWidth; // trigger reflow
+  $randomPick.style.animation = 'popIn 0.3s ease-out';
+  pickRandom();
+});
+$randomClose.addEventListener('click', () => { $randomPick.style.display = 'none'; });
+
+// Init
+applyFilters();
+</script>
+</body>
+</html>
