@@ -2797,7 +2797,9 @@ years.forEach(y => {
 });
 
 function getCheckedCategories() {
-  return [...document.querySelectorAll('.checkboxes input[type="checkbox"]:checked')].map(c => c.value);
+  return [...document.querySelectorAll('.checkboxes input[type="checkbox"]:checked')]
+    .filter(c => c.id !== 'boxOfficeToggle')
+    .map(c => c.value);
 }
 
 function applyFilters() {
