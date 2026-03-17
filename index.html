@@ -498,10 +498,10 @@
       <tr>
         <th data-sort="year">Year <span class="sort-arrow"></span></th>
         <th data-sort="film">Film <span class="sort-arrow"></span></th>
+        <th data-sort="streaming">Streaming <span class="sort-arrow"></span></th>
         <th data-sort="categories">Category Nominees <span class="sort-arrow"></span></th>
         <th data-sort="people">Nominees <span class="sort-arrow"></span></th>
         <th data-sort="winner">Won <span class="sort-arrow"></span></th>
-        <th data-sort="streaming">Streaming <span class="sort-arrow"></span></th>
         <th>Watch</th>
       </tr>
     </thead>
@@ -2961,10 +2961,10 @@ function renderTable() {
     tr.innerHTML = `
       <td class="cell-year">${f.year}</td>
       <td class="cell-film">${f.film}</td>
+      <td>${f.streaming ? `<span class="badge badge-streaming ${sc}">${f.streaming}</span>` : ''}</td>
       <td>${catBadges}</td>
       <td class="cell-person">${people || '&mdash;'}</td>
       <td>${wonText}</td>
-      <td>${f.streaming ? `<span class="badge badge-streaming ${sc}">${f.streaming}</span>` : ''}</td>
       <td><a href="${jwLink(f.film)}" target="_blank" rel="noopener" class="watch-link">JustWatch &#8599;</a></td>
     `;
     frag.appendChild(tr);
